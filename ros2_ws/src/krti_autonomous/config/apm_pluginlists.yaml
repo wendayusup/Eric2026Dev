@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    plugin_denylist:
+      # common
+      - actuator_control
+      - ftp
+      - hil
+      # extras
+      - altitude
+      - debug_value
+      - image_pub
+      - px4flow
+      - vibration
+      - vision_speed_estimate
+      - wheel_odometry
+      # Suppress 'DS: no mapping for sensor id: 10' spam — we handle rangefinder data via direct MAVLink in gcs_bridge
+      - distance_sensor

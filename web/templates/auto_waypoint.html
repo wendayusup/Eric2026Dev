@@ -1,0 +1,67 @@
+<div class="section-card" id="panel-auto-waypoint"
+    style="display:none; flex: none; height: auto; box-sizing: border-box; flex-direction: column; gap: 8px;">
+    <div class="section-title" style="margin-bottom: 2px;">AUTONOMOUS MISSION</div>
+
+    <!-- Main Action Buttons Row (ARM, TAKEOFF, LAND, CUTOFF) -->
+    <div style="display: flex; gap: 4px; width: 100%; box-sizing: border-box; margin-top: 2px;">
+        <button class="action-btn btn-blue" onclick="sendManualAction('arm')"
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Arm Vehicle">ARM</button>
+        <button class="action-btn btn-blue" onclick="sendTakeoffAction()"
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Takeoff Vehicle">TAKEOFF</button>
+        <button class="action-btn btn-orange" onclick="sendManualAction('land')"
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Land Vehicle">LAND</button>
+        <button class="action-btn btn-danger" onclick="sendManualAction('disarm')"
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Emergency Disarm/Cutoff">CUTOFF</button>
+    </div>
+
+    <!-- Waypoint Pipeline -->
+    <div class="wp-pipeline" id="auto-pipeline-container"
+        style="max-height: 140px; min-height: 80px; overflow-y: auto; margin-bottom: 2px; box-sizing: border-box; width: 100%;">
+        <div style="font-size:11px; color:var(--text-muted); text-align:center; padding-top: 25px;">
+            Pipeline empty. Please construct a route.</div>
+    </div>
+
+    <!-- Parameter Inputs Row -->
+    <div style="display: flex; gap: 10px;">
+        <div class="input-inline" style="flex: 1; margin-bottom: 0;">
+            <label style="font-size: 11px; font-weight: 600; color: #0f172a;">Alt (m):</label>
+            <input type="number" class="apple-input" id="auto-alt" value="1" min="1"
+                style="width: 55px; padding: 4px 6px; font-size: 12px; background: #ffffff; border: 1px solid var(--border-soft); color: #0f172a; font-weight: 400;">
+        </div>
+        <div class="input-inline" style="flex: 1; margin-bottom: 0;">
+            <label style="font-size: 11px; font-weight: 600; color: #0f172a;">Spd (m/s):</label>
+            <input type="number" class="apple-input" id="auto-speed" value="1" min="0.5" max="10" step="0.5"
+                style="width: 55px; padding: 4px 6px; font-size: 12px; background: #ffffff; border: 1px solid var(--border-soft); color: #0f172a; font-weight: 400;">
+        </div>
+    </div>
+
+    <!-- Target Coordinates Box -->
+    <div class="target-coords-box"
+        style="padding: 8px 12px; margin-top: 2px; min-height: 42px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border-soft); box-sizing: border-box; width: 100%;">
+        <span style="font-weight: 600; font-size: 11px; color: #0f172a;">Map Target:</span>
+        <b id="auto-target-coords"
+            style="color:var(--apple-orange); font-size:12px; font-family: 'JetBrains Mono', monospace;">NOT SELECTED</b>
+    </div>
+
+    <!-- Action Buttons Grid -->
+    <div class="grid-buttons" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 2px;">
+        <button class="action-btn btn-blue"
+            style="height: 32px; font-size: 10.5px; font-weight: 700; grid-column: span 1;"
+            onclick="addWaypointToPipeline('takeoff')">ADD TAKEOFF</button>
+        <button class="action-btn btn-blue"
+            style="height: 32px; font-size: 10.5px; font-weight: 700; grid-column: span 1;"
+            onclick="addWaypointToPipeline('waypoint')">ADD WAYPOINT</button>
+        <button class="action-btn btn-blue"
+            style="height: 32px; font-size: 10.5px; font-weight: 700; grid-column: span 1;"
+            onclick="addWaypointToPipeline('landing')">ADD LANDING</button>
+        <button class="action-btn"
+            style="height: 32px; font-size: 10.5px; font-weight: 700; grid-column: span 1; background: #0f172a; color: #ffffff; border: 1px solid #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.2);"
+            onclick="clearAutoMission()">CLEAR ROUTE</button>
+        <button class="action-btn btn-orange" id="btn-upload-auto"
+            style="height: 32px; font-size: 11px; font-weight: 800; grid-column: span 2; padding: 0; display: flex; align-items: center; justify-content: center; position: relative;"
+            onclick="triggerUploadProcess('auto')">
+            <div class="upload-progress" id="prog-auto"></div>
+            <span style="position:relative; z-index:2;" id="txt-auto">UPLOAD MISSION</span>
+        </button>
+    </div>
+</div>

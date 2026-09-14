@@ -1,0 +1,988 @@
+/* --- SEARCH AND RESCUE (SAR) TACTICAL LIGHT NAVY DESIGN SYSTEM --- */
+:root {
+    --bg-clean: #f1f5f9;        /* Soft Light Gray Background */
+    --card-pure: #ffffff;       /* Pure White Card */
+    --card-bg-subtle: #f8fafc;   /* Subtle Light Slate Card */
+    --text-dark: #0f172a;       /* Deep Navy Text */
+    --text-muted: #0f172a;      /* Deep Navy Text for High Contrast */
+    --apple-green: #059669;     /* Emerald Safety Status */
+    --apple-orange: #ff6b00;    /* SPECIAL SAR RESCUE ORANGE (ACCENT) */
+    --apple-blue: #0284c7;      /* Sky Blue Accent */
+    --border-soft: #cbd5e1;     /* Soft Light Border */
+    --border-orange: rgba(255, 107, 0, 0.45); /* SAR Orange Border */
+    --radius-ui: 14px;
+    --sar-orange: #ff6b00;
+    --sar-orange-glow: rgba(255, 107, 0, 0.35);
+}
+
+/* Custom Alert Modal Style */
+.custom-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 9, 18, 0.78);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.custom-alert-overlay.show {
+    opacity: 1;
+}
+
+.custom-alert-card {
+    background: rgba(15, 28, 51, 0.92);
+    border: 1px solid var(--border-orange);
+    backdrop-filter: blur(25px);
+    border-radius: 20px;
+    padding: 30px;
+    width: 90%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 107, 0, 0.15);
+    transform: scale(0.8);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: #fff;
+}
+
+.custom-alert-overlay.show .custom-alert-card {
+    transform: scale(1);
+}
+
+.custom-alert-icon {
+    font-size: 50px;
+    margin-bottom: 16px;
+    line-height: 1;
+}
+
+.custom-alert-title {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+}
+
+.custom-alert-message {
+    font-size: 13.5px;
+    color: #ffffff;
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.custom-alert-btn {
+    background: var(--apple-orange);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(255, 107, 0, 0.35);
+}
+
+.custom-alert-btn:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    background: #ff7e1a;
+}
+
+.custom-alert-btn:active {
+    transform: translateY(0);
+}
+
+.alert-success .custom-alert-icon {
+    color: var(--apple-green);
+}
+
+.alert-error .custom-alert-icon {
+    color: #ef4444;
+}
+
+.alert-warning .custom-alert-icon {
+    color: var(--apple-orange);
+}
+
+.alert-info .custom-alert-icon {
+    color: var(--apple-blue);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-clean);
+    color: var(--text-dark);
+    margin: 0;
+    padding: 12px 15px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* --- HEADBAR --- */
+.headbar {
+    background: #ffffff;
+    border-radius: var(--radius-ui);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-soft);
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+    flex-shrink: 0;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-section img {
+    height: 38px;
+    object-fit: contain;
+}
+
+.mode-selector {
+    background: #0f172a;
+    padding: 4px;
+    border-radius: 10px;
+    display: flex;
+    gap: 4px;
+    border: 1px solid #1e293b;
+}
+
+.mode-btn {
+    padding: 5px 16px;
+    border: none;
+    border-radius: 7px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: transparent;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+}
+
+.mode-btn.active {
+    background: var(--apple-orange);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.35);
+    font-weight: 800;
+}
+
+/* --- WORKSPACE LAYOUT (BENTO UI 3-COLUMN) --- */
+.main-workspace {
+    display: grid;
+    grid-template-columns: 380px 1fr 360px;
+    grid-template-rows: 210px 210px 1fr;
+    gap: 12px;
+    flex-grow: 1;
+    min-height: 0;
+    margin-bottom: 12px;
+}
+
+.panel {
+    background: #ffffff;
+    border-radius: var(--radius-ui);
+    border: 1px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
+}
+
+.panel-header {
+    padding: 10px 16px;
+    font-weight: 800;
+    font-size: 12px;
+    color: #0f172a;
+    background: #f1f5f9;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Posisi Panel Spesifik (Bento Layout 3 Kolom) */
+/* Kolom 1 (Kiri): Kamera Depan, Kamera Bottom, Dual Graphs Side-by-Side */
+.panel-front-camera {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.panel-bottom-camera {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.left-bottom-graphs {
+    grid-column: 1;
+    grid-row: 3;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-height: 0;
+}
+
+.panel-graph-alt {
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    margin: 0;
+}
+
+.panel-graph-speed {
+    border: 1px solid rgba(255, 107, 0, 0.25);
+    margin: 0;
+}
+
+/* Kolom 2 (Tengah): Full Height Navigation Map */
+.panel-map {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    position: relative;
+    border: 1px solid rgba(255, 107, 0, 0.25);
+}
+
+/* Kolom 3 (Kanan): Full Height Command Center (No Scrolling Needed!) */
+.panel-control {
+    grid-column: 3;
+    grid-row: 1 / 4;
+}
+
+/* --- LIVE CAMERA FEED --- */
+.camera-box {
+    flex: 1;
+    background: #040912;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rssi-pill {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rssi-good {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--apple-green);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.rssi-fair {
+    background: rgba(255, 107, 0, 0.15);
+    color: var(--apple-orange);
+    border: 1px solid rgba(255, 107, 0, 0.3);
+}
+
+.rssi-poor {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* --- MAP --- */
+#map {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Darken satellite map tiles for high contrast SAR tactical display */
+.leaflet-tile-container img {
+    filter: brightness(0.85) contrast(1.15) saturate(1.1);
+    transition: filter 0.3s ease;
+}
+
+/* --- CONTROL PANEL --- */
+.control-scroll {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.section-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    color: #0f172a;
+}
+
+.section-title {
+    font-weight: 800;
+    font-size: 12px;
+    color: #0f172a;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Layout Pembagi Kiri-Kanan yang ikut membentang (flex: 1) */
+.control-split {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+}
+
+.control-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.control-right {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.input-inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #e2e8f0;
+}
+
+.apple-input {
+    width: 70px;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono';
+    font-size: 12.5px;
+    text-align: center;
+    background: #060c18;
+    color: #ffffff;
+}
+
+.apple-input:focus {
+    outline: none;
+    border-color: var(--apple-orange);
+    box-shadow: 0 0 8px rgba(255, 107, 0, 0.3);
+}
+
+/* Kotak Target Manual dibuat elastis (flex:1) agar besar mendominasi ruang */
+.target-coords-box {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: #060c18;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 6px;
+    text-align: center;
+}
+
+.grid-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    flex: 1;
+}
+
+.action-btn {
+    padding: 6px 4px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+    white-space: normal;
+    word-break: break-word;
+    letter-spacing: 0.5px;
+}
+
+.btn-green {
+    background: var(--apple-green);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.btn-blue {
+    background: var(--apple-blue);
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+}
+
+.btn-orange {
+    background: var(--apple-orange);
+    color: white;
+    box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35);
+    font-weight: 800;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    font-weight: 800;
+    grid-column: span 2;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-master-upload {
+    background: var(--apple-orange);
+    color: white;
+    font-weight: 800;
+    grid-column: span 2;
+    margin-top: 8px;
+    padding: 10px 12px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+}
+
+.action-btn:hover {
+    opacity: 0.92;
+    transform: scale(0.98);
+}
+
+.action-btn:disabled {
+    background: #1e293b !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none !important;
+}
+
+.upload-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.25);
+    width: 0%;
+    transition: width 0.3s linear;
+}
+
+/* WAYPOINT PIPELINE fixed height to prevent stretching */
+.wp-pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 110px;
+    overflow-y: auto;
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    margin-bottom: 8px;
+}
+
+.wp-node {
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #0f172a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.node-tag {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: white;
+    font-size: 9px;
+}
+
+/* --- BOTTOMBAR --- */
+.bottombar {
+    background: #ffffff;
+    border-radius: var(--radius-ui);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.monitor-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    min-width: 70px;
+}
+
+.monitor-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 2px;
+}
+
+.monitor-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 400;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.monitor-value span {
+    font-size: 10px;
+    color: #0f172a;
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* --- WAYPOINT MAP PATH GLOW EFFECT (SAR ORANGE NEON) --- */
+.waypoint-glow-line {
+    filter: drop-shadow(0 0 8px #ff6b00) drop-shadow(0 0 3px #ff6b00);
+    animation: glow-pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 0.85;
+    }
+}
+
+/* --- MANUAL GUIDED PATH GLOW EFFECT --- */
+.manual-glow-line {
+    filter: drop-shadow(0 0 6px var(--apple-blue)) drop-shadow(0 0 2px var(--apple-blue));
+    animation: glow-pulse-blue 2.5s infinite ease-in-out;
+}
+
+@keyframes glow-pulse-blue {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 0.85;
+    }
+}
+
+/* --- KRTI UPLOAD SPINNER --- */
+@keyframes krti-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* --- VECTOR CAMERA RETICLE OVERLAYS --- */
+.camera-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.8;
+}
+
+/* Horizontal line of the reticle */
+.camera-reticle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%);
+}
+
+/* Vertical line of the reticle */
+.camera-reticle::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    transform: translateX(-50%);
+}
+
+/* Center dot - SAR Rescue Orange */
+.camera-reticle-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: var(--apple-orange);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--apple-orange), 0 0 2px rgba(0, 0, 0, 0.8);
+    z-index: 11;
+}
+
+/* --- VECTOR CAMERA STATUS OVERLAY BADGES --- */
+.camera-status-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(6, 12, 24, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    z-index: 15;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s ease-in-out;
+}
+
+.camera-status-overlay.scanning {
+    color: var(--apple-orange);
+    border-color: rgba(255, 107, 0, 0.4);
+    background: rgba(255, 107, 0, 0.12);
+    backdrop-filter: blur(10px);
+}
+
+.camera-status-overlay.detected {
+    color: var(--apple-green);
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+    backdrop-filter: blur(10px);
+}
+
+/* Objek sudah ALIGNED / CENTERED — pulse hijau terang untuk umpan balik drop */
+.camera-status-overlay.detected.centered {
+    color: #fff;
+    background: rgba(16, 185, 129, 0.85);
+    border-color: rgba(16, 185, 129, 0.9);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: overlay-center-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes overlay-center-pulse {
+    from {
+        box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.75);
+    }
+    to {
+        box-shadow: 0 0 18px rgba(16, 185, 129, 0.95);
+        background: rgba(16, 185, 129, 0.9);
+    }
+}
+
+/* --- TOAST NOTIFICATION --- */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(15, 28, 51, 0.95);
+    border: 1px solid var(--border-orange);
+    backdrop-filter: blur(14px);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #fff;
+    min-width: 250px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transform: translateX(-120%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.toast.success .toast-header { color: var(--apple-green); }
+.toast.info .toast-header { color: var(--apple-blue); }
+.toast.warning .toast-header { color: var(--apple-orange); }
+
+/* --- SLIDE-IN LIVE EVENT LOG PANEL --- */
+.log-panel {
+    position: fixed;
+    top: 0;
+    left: -440px;
+    width: 420px;
+    height: 100vh;
+    background: #ffffff;
+    border-right: 1px solid var(--border-soft);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 8000;
+    transition: left 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 25px rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+}
+
+.log-panel.open {
+    left: 0;
+}
+
+.log-panel-header {
+    padding: 14px 16px;
+    font-weight: 800;
+    font-size: 12px;
+    color: #0f172a;
+    background: #f1f5f9;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.log-console-body {
+    flex: 1;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #0f172a;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    line-height: 1.5;
+    background: #ffffff;
+}
+
+.log-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 7999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+.log-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.toast-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--apple-green);
+    width: 100%;
+    transform-origin: left;
+}
+
+/* --- CUSTOM ALERT OVERLAY MODAL --- */
+.custom-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast.info .toast-progress { background: var(--apple-blue); }
+.toast.warning .toast-progress { background: var(--apple-orange); }
+
+/* --- DARK THEME OVERRIDES --- */
+body.theme-dark {
+    --bg-clean: #070d19;
+    --card-pure: #0f1c33;
+    --card-bg-subtle: #142442;
+    --text-dark: #ffffff;
+    --text-muted: #ffffff;
+    --border-soft: rgba(255, 255, 255, 0.15);
+    background-color: #070d19 !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark .headbar,
+body.theme-dark .panel,
+body.theme-dark .bottombar {
+    background: #0f1c33 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.theme-dark .panel-header {
+    background: #0b1528 !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+body.theme-dark .section-card,
+body.theme-dark .target-coords-box,
+body.theme-dark .wp-pipeline,
+body.theme-dark div[style*="background: #f8fafc"] {
+    background: #060c18 !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.theme-dark .wp-node {
+    background: #0f1c33 !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.theme-dark .section-title,
+body.theme-dark .monitor-label,
+body.theme-dark .monitor-value,
+body.theme-dark .monitor-value span,
+body.theme-dark .input-inline label,
+body.theme-dark label,
+body.theme-dark span[style*="color: #0f172a"] {
+    color: #ffffff !important;
+}
+
+body.theme-dark .apple-input,
+body.theme-dark #select-map-layer {
+    background: #060c18 !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.theme-dark .panel-graph-alt div[style*="background: #ffffff"],
+body.theme-dark .panel-graph-speed div[style*="background: #ffffff"] {
+    background: #060c18 !important;
+}
+
+body.theme-dark .log-panel {
+    background: #0f1c33 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark .log-panel-header {
+    background: #0b1528 !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+body.theme-dark .log-console-body {
+    background: #060c18 !important;
+    color: #ffffff !important;
+}

@@ -1,0 +1,48 @@
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# System / IDE Files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Large simulation binaries
+airsim_bin/
+
+# Project Planning (local only)
+master_plan.md
+
+# Large external dependencies (avoid git tracking)
+ardupilot/
+ardupilot_gazebo/
+
+# ROS2 build and log artifacts (only track src/)
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+build/
+install/
+log/
+
+# Temporary scratch files
+scratch/
+
+# Ignore duplicate dev/release subfolders
+/krti_2026_release/
+/KarsaTi2026Dev/
+
+# MAVProxy logs & temp files
+*.tlog
+*.tlog.raw
+*.parm
+MyCopter/

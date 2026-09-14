@@ -1,0 +1,97 @@
+# Custom APM Configuration for KRTI Autonomous Drone 2026
+# Custom distance_sensor mapping for sensor_id: 10, 0, 1, 2, 11 with all orientation variants
+/**:
+  ros__parameters:
+    startup_px4_usb_quirk: false
+
+# sys_status
+/**/sys:
+  ros__parameters:
+    min_voltage: [10.0]
+    disable_diag: false
+    heartbeat_rate: 1.0
+    heartbeat_mav_type: "ONBOARD_CONTROLLER"
+    conn_timeout: 60.0
+
+# sys_time
+/**/time:
+  ros__parameters:
+    time_ref_source: "fcu"
+    timesync_mode: MAVLINK
+    timesync_avg_alpha: 0.6
+    timesync_rate: 10.0
+    system_time_rate: 1.0
+
+# global_position
+/**/global_position:
+  ros__parameters:
+    frame_id: "map"
+    child_frame_id: "base_link"
+    rot_covariance: 99999.0
+    gps_uere: 1.0
+    use_relative_alt: true
+    tf.send: false
+
+# imu_pub
+/**/imu:
+  ros__parameters:
+    frame_id: "base_link"
+    linear_acceleration_stdev: 0.0003
+    angular_velocity_stdev: 0.0003490659
+    orientation_stdev: 1.0
+    magnetic_stdev: 0.0
+
+# local_position
+/**/local_position:
+  ros__parameters:
+    frame_id: "map"
+    tf.send: false
+    tf.frame_id: "map"
+    tf.child_frame_id: "base_link"
+    tf.send_fcu: false
+
+# distance_sensor plugin — maps incoming MAVLink DISTANCE_SENSOR packets by (id, orientation)
+# Node name is /mavros so we use that namespace
+/mavros:
+  ros__parameters:
+    distance_sensor:
+      alt_r_down:
+        id: 10
+        frame_id: "lidar_alt_r"
+        orientation: 0
+        field_of_view: 0.0
+        send_tf: false
+        sensor_position:
+          x: 0.0
+          y: 0.0
+          z: -0.1
+      rangefinder_front:
+        id: 0
+        frame_id: "lidar_front"
+        orientation: 0
+        field_of_view: 0.0
+        send_tf: false
+        sensor_position:
+          x: 0.1
+          y: 0.0
+          z: 0.0
+      rangefinder_front2:
+        id: 1
+        frame_id: "lidar_front2"
+        orientation: 0
+        field_of_view: 0.0
+        send_tf: false
+        sensor_position:
+          x: 0.1
+          y: 0.0
+          z: 0.0
+      rangefinder_rear:
+        id: 11
+        frame_id: "lidar_rear"
+        orientation: 8
+        field_of_view: 0.0
+        send_tf: false
+        sensor_position:
+          x: -0.1
+          y: 0.0
+          z: 0.0

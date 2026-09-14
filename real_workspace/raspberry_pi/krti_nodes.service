@@ -1,0 +1,15 @@
+[Unit]
+Description=KRTI 2026 Drone Nodes Startup Service
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/polman
+ExecStart=/bin/bash /home/polman/start_nodes.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

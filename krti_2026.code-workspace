@@ -1,0 +1,31 @@
+{
+  "folders": [
+    {
+      "name": "KRTI 2026 (Root)",
+      "path": "."
+    },
+    {
+      "name": "ROS 2 Workspace",
+      "path": "ros2_ws"
+    },
+    {
+      "name": "Real Workspace",
+      "path": "real_workspace"
+    },
+    {
+      "name": "Web",
+      "path": "web"
+    }
+  ],
+  "settings": {
+    "git.detectSubmodules": false,
+    "git.autoRepositoryDetection": false,
+    "files.watcherExclude": {
+      "**/ardupilot/**": true,
+      "**/ardupilot_gazebo/**": true,
+      "**/ros2_ws/build/**": true,
+      "**/ros2_ws/install/**": true,
+      "**/ros2_ws/log/**": true
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# Parameter tambahan untuk Simulasi Gazebo ArduPilot
+# Mengatur tipe frame ke Quadcopter X dan menonaktifkan pre-arm checks
+
+FRAME_CLASS 1
+FRAME_TYPE 1
+ARMING_CHECK 0

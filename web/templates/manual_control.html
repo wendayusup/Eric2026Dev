@@ -5,13 +5,17 @@
     <!-- Main Action Buttons Row (ARM, TAKEOFF, LAND, CUTOFF) -->
     <div style="display: flex; gap: 4px; width: 100%; box-sizing: border-box; margin-top: 2px;">
         <button class="action-btn btn-blue" onclick="sendManualAction('arm')"
-            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Arm Vehicle">ARM</button>
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;"
+            title="Arm Vehicle">ARM</button>
         <button class="action-btn btn-blue" onclick="sendTakeoffAction()"
-            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Takeoff Vehicle">TAKEOFF</button>
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;"
+            title="Takeoff Vehicle">TAKEOFF</button>
         <button class="action-btn btn-orange" onclick="sendManualAction('land')"
-            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Land Vehicle">LAND</button>
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;"
+            title="Land Vehicle">LAND</button>
         <button class="action-btn btn-danger" onclick="sendManualAction('disarm')"
-            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;" title="Emergency Disarm/Cutoff">CUTOFF</button>
+            style="flex: 1; min-width: 0; height: 32px; font-size: 10px; font-weight: 800; padding: 0; white-space: nowrap;"
+            title="Emergency Disarm/Cutoff">CUTOFF</button>
     </div>
 
     <!-- Parameter Inputs Row -->
@@ -30,7 +34,8 @@
 
     <!-- Flight Mode Dropdown Row -->
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 2px;">
-        <div class="input-inline" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+        <div class="input-inline"
+            style="flex: 1; margin-bottom: 0; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
             <label style="font-size: 11px; font-weight: 600; color: #0f172a; white-space: nowrap;">Flight Mode:</label>
             <select class="apple-input" id="flight-mode-select" onchange="changeFlightMode(this.value)"
                 style="flex: 1; padding: 4px 6px; font-size: 12px; height: 26px; border-radius: 6px; background: #ffffff; border: 1px solid var(--border-soft); color: #0f172a; font-weight: 400;">
@@ -60,22 +65,9 @@
             <span style="position:relative; z-index:2;" id="txt-manual">UPLOAD TARGET</span>
         </button>
         <button class="action-btn" onclick="sendManualAction('hold')"
-            style="height: 32px; font-size: 11px; font-weight: 700; grid-column: span 1; background: #0f172a; color: #ffffff; border: 1px solid #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.2);">HOLD / LOITER</button>
+            style="height: 32px; font-size: 11px; font-weight: 700; grid-column: span 1; background: #0f172a; color: #ffffff; border: 1px solid #0f172a; box-shadow: 0 2px 6px rgba(15,23,42,0.2);">HOLD
+            / LOITER</button>
     </div>
 
-    <!-- Servo Control Section (DUAL SERVO OPEN / CLOSE) -->
-    <div
-        style="margin-top: 4px; border-top: 1px solid var(--border-soft); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 700; color: #0f172a; letter-spacing: 0.5px;">SERVO CONTROL:</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
-            <button class="action-btn" onclick="testBothServos('open')"
-                style="height: 32px; font-size: 12px; font-weight: 800; grid-column: span 1; background: var(--apple-orange); color: #ffffff; border: 1px solid var(--apple-orange); box-shadow: 0 4px 12px rgba(255, 107, 0, 0.35);">OPEN</button>
-            <button class="action-btn" onclick="testBothServos('close')"
-                style="height: 32px; font-size: 12px; font-weight: 800; grid-column: span 1; background: #142442; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 2px 6px rgba(0,0,0,0.2);">CLOSE</button>
-        </div>
-    </div>
 
 </div>

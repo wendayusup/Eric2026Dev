@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 """
-servo_node.py — KRTI 2026 VTOL | Servo Node (OPEN/CLOSE only)
+pi_servo_node.py — KRTI 2026 VTOL | Single Servo Node (OPEN/CLOSE on Pin 12)
 
-Perubahan dari versi sebelumnya:
-  1. Servo dibatasi HANYA 2 posisi: CLOSE_ANGLE (0°) dan OPEN_ANGLE (90°).
-     Sudut sembarang dari GCS tidak lagi diteruskan mentah-mentah — akan
-     di-snap ke salah satu dari 2 posisi ini.
-  2. Ganti RPi.GPIO software PWM -> pigpio hardware-timed PWM.
-     RPi.GPIO.PWM() SELALU pakai software PWM meskipun pin (GPIO12/19) itu
-     sebenarnya hardware-PWM-capable — ini penyebab paling umum servo
-     "salah gerakan"/jitter di Raspberry Pi walau formula duty cycle sudah
-     benar (yang mana formula lama sudah benar). ESP32 Servo library pakai
-     hardware timer, makanya hasilnya rapi di ESP32.
-     pigpio men-drive PWM lewat DMA di background daemon (pigpiod) sehingga
-     presisinya sekelas hardware timer, mirip ESP32.
-  3. Kalau pigpio tidak tersedia / pigpiod tidak jalan, otomatis fallback
-     ke RPi.GPIO (mode lama) supaya script tetap bisa jalan untuk testing.
+Mode Servo Tunggal (Single Servo):
+  - Servo terhubung ke GPIO 12 (Physical Pin 32, PWM0).
+  - Posisi OPEN = 0° (650us pulse width)
+  - Posisi CLOSE = 90° (1500us pulse width)
+  - Menggunakan pigpio DMA Hardware PWM untuk stabilitas tinggi tanpa jitter.
 
-SETUP DI RASPBERRY PI (wajib untuk pakai jalur pigpio):
+SETUP DI RASPBERRY PI:
     sudo apt install pigpio python3-pigpio -y
     sudo systemctl enable pigpiod
     sudo systemctl start pigpiod
@@ -27,38 +18,28 @@ import time
 import socket
 import subprocess
 import threading
-import socketio
 
 # ─── Configuration ─────────────────────────────────────────────────────────
 
-LAPTOP_IP = "192.168.1.122"  # Default fallback IP GCS Laptop
+LAPTOP_IP = "10.157.67.76"  # Default fallback IP GCS Laptop
 GCS_URL = f"http://{LAPTOP_IP}:5000"
 
-SERVO1_PIN = 12  # GPIO12 (PWM0, hardware-capable)
-SERVO2_PIN = 19  # GPIO19 (PWM1, hardware-capable)
+SERVO1_PIN = 12  # GPIO12 (PWM0, Physical Pin 32)
 
 # Position values
 SERVO1_CLOSE = 90  # Posisi Fisik Menutup / Terkunci (1500us)
-SERVO1_OPEN  = 0   # Posisi Fisik Membuka / Rilis (500us)
-
-SERVO2_CLOSE = 90  # Posisi Fisik Menutup / Terkunci (1500us)
-SERVO2_OPEN  = 0   # Posisi Fisik Membuka / Rilis (500us)
+SERVO1_OPEN  = 0   # Posisi Fisik Membuka / Rilis (650us)
 
 INVERT_SERVO1 = False
-INVERT_SERVO2 = False
     
 # Kalibrasi Lebar Pulsa (Microseconds)
 # SG90/MG90S: 0° = 650us (mencegah stall), 90° = 1500us
 SERVO1_PULSE_0  = 650
 SERVO1_PULSE_90 = 1500
 
-SERVO2_PULSE_0  = 650
-SERVO2_PULSE_90 = 1500
-
 # State tracking (1: servo_id -> current_angle)
 current_servo_state = {
-    1: None,
-    2: None
+    1: None
 }
 
 _last_known_gcs_ip = None
@@ -112,7 +93,6 @@ DRIVER = 'mock'
 GPIO_AVAILABLE = False
 pi = None
 servo1 = None
-servo2 = None
 
 try:
     import pigpio
@@ -120,10 +100,9 @@ try:
     if not pi.connected:
         raise RuntimeError("pigpiod tidak jalan (jalankan: sudo systemctl start pigpiod)")
     pi.set_mode(SERVO1_PIN, pigpio.OUTPUT)
-    pi.set_mode(SERVO2_PIN, pigpio.OUTPUT)
     DRIVER = 'pigpio'
     GPIO_AVAILABLE = True
-    print("[+] Servo Node: pigpio connected — using Hardware-Timed PWM.")
+    print("[+] Servo Node: pigpio connected — using Hardware-Timed PWM on GPIO 12.")
 except Exception as e:
     print(f"[!] Servo Node: pigpio tidak tersedia ({e}), coba fallback ke RPi.GPIO...")
     try:
@@ -131,14 +110,11 @@ except Exception as e:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(SERVO1_PIN, GPIO.OUT)
-        GPIO.setup(SERVO2_PIN, GPIO.OUT)
         servo1 = GPIO.PWM(SERVO1_PIN, 50)
-        servo2 = GPIO.PWM(SERVO2_PIN, 50)
         servo1.start(0)
-        servo2.start(0)
         DRIVER = 'rpigpio'
         GPIO_AVAILABLE = True
-        print("[+] Servo Node: RPi.GPIO terhubung — pakai software PWM (Aman).")
+        print("[+] Servo Node: RPi.GPIO terhubung — pakai software PWM pada GPIO 12.")
     except Exception as e2:
         print(f"[!] Servo Node: RPi.GPIO juga tidak tersedia ({e2}).")
 
@@ -146,8 +122,8 @@ except Exception as e:
 def _angle_to_pulsewidth_us(pin_num: int, angle: int) -> int:
     """Konversi sudut ke pulsewidth (us) dengan kalibrasi per-servo."""
     angle = max(0, min(180, int(angle)))
-    pw_0  = SERVO1_PULSE_0 if pin_num == SERVO1_PIN else SERVO2_PULSE_0
-    pw_90 = SERVO1_PULSE_90 if pin_num == SERVO1_PIN else SERVO2_PULSE_90
+    pw_0  = SERVO1_PULSE_0
+    pw_90 = SERVO1_PULSE_90
 
     if angle == 0:
         return pw_0
@@ -164,38 +140,34 @@ def set_servo_angle_direct(pin_num: int, angle: int):
 
     if DRIVER == 'pigpio' and pi is not None:
         try:
-            pi.set_servo_pulsewidth(pin_num, pulsewidth)
-            print(f"[+] (pigpio DMA PWM) Pin {pin_num} -> {angle}° (Continuous PW: {pulsewidth}us)")
+            pi.set_servo_pulsewidth(SERVO1_PIN, pulsewidth)
+            print(f"[+] (pigpio DMA PWM) Pin {SERVO1_PIN} -> {angle}° (PW: {pulsewidth}us)")
         except Exception as e:
-            print(f"[!] Gagal pigpio pin {pin_num}: {e}")
+            print(f"[!] Gagal pigpio pin {SERVO1_PIN}: {e}")
 
     elif DRIVER == 'rpigpio':
-        servo_obj = servo1 if pin_num == SERVO1_PIN else servo2
         duty = (pulsewidth / 20000.0) * 100.0
         try:
-            if servo_obj:
-                servo_obj.ChangeDutyCycle(duty)
-                print(f"[+] (RPi.GPIO) Pin {pin_num} -> {angle}° (Continuous Duty: {duty:.2f}%)")
+            if servo1:
+                servo1.ChangeDutyCycle(duty)
+                print(f"[+] (RPi.GPIO) Pin {SERVO1_PIN} -> {angle}° (Duty: {duty:.2f}%)")
         except Exception as e:
-            print(f"[!] Gagal RPi.GPIO pin {pin_num}: {e}")
+            print(f"[!] Gagal RPi.GPIO pin {SERVO1_PIN}: {e}")
     else:
-        print(f"[MOCK] Pin {pin_num} -> {angle}° (pulsewidth: {pulsewidth}us)")
+        print(f"[MOCK] Pin {SERVO1_PIN} -> {angle}° (pulsewidth: {pulsewidth}us)")
 
 
 def init_servos_to_close():
-    print("[*] Initializing Servo 1 & Servo 2 to initial LOCKED/CLOSE position (CLOSE - 90°)...")
+    print("[*] Initializing Single Servo (Pin 12) to LOCKED/CLOSE position (90°)...")
     set_servo_angle_direct(SERVO1_PIN, SERVO1_CLOSE)
     current_servo_state[1] = SERVO1_CLOSE
-    set_servo_angle_direct(SERVO2_PIN, SERVO2_CLOSE)
-    current_servo_state[2] = SERVO2_CLOSE
 
 
 def cleanup_servos():
-    global pi, GPIO, servo1, servo2
+    global pi, GPIO, servo1
     if DRIVER == 'pigpio' and pi is not None:
         try:
             pi.set_servo_pulsewidth(SERVO1_PIN, 0)
-            pi.set_servo_pulsewidth(SERVO2_PIN, 0)
             pi.stop()
         except Exception as e:
             print(f"[!] Gagal membersihkan pigpio: {e}")
@@ -203,8 +175,6 @@ def cleanup_servos():
         try:
             if servo1 is not None:
                 servo1.stop()
-            if servo2 is not None:
-                servo2.stop()
             GPIO.cleanup()
         except Exception as e:
             print(f"[!] Gagal membersihkan GPIO servo: {e}")
@@ -234,7 +204,8 @@ WP2_ARUCO_ID = 2
 # Latch flag supaya trigger ArUco WP2 HANYA BERAKSI 1 KALI saja per-misi (mencegah multi-drop)
 wp2_auto_triggered = False
 
-# Latch flag terpisah untuk Red Box drop (bisa terpicu WP2 ArUco ATAU Red Box)
+# Latch flag terpisah untuk Black Object & Red Box drop
+black_drop_triggered = False
 red_drop_triggered = False
 
 def reset_wp2_trigger():
@@ -247,41 +218,42 @@ def reset_red_trigger():
     red_drop_triggered = False
     print("[*] Latch Trigger Red Box di-reset.")
 
+def reset_black_trigger():
+    global black_drop_triggered
+    black_drop_triggered = False
+    print("[*] Latch Trigger Black Object di-reset.")
+
 def trigger_8s_payload_drop(source: str = 'unknown'):
-    """Fungsi Otonom 8-Detik Payload Drop DUA SERVO Sekaligus:
-    Membuka KEDUA Servo (Servo 1 GPIO 12 & Servo 2 GPIO 19) ke 0° (500us),
-    tahan 8 detik, lalu menutup kembali KEDUA Servo ke 90° (1500us).
-    `source`: label string untuk log ('aruco_wp2' / 'red_box' / 'manual')
+    """Fungsi Otonom 8-Detik Payload Drop Single Servo (Pin 12):
+    Membuka Servo (GPIO 12) ke 0° (650us), tahan 8 detik,
+    lalu menutup kembali Servo ke 90° (1500us).
+    `source`: label string untuk log ('aruco_wp2' / 'black_object' / 'red_box' / 'manual')
     """
     def _routine():
-        print(f"[*] [DUAL SERVO DROP] Sumber: '{source}' — MEMBUKA KEDUA Servo (Pin 12 & Pin 19) ke 0° (500us) selama 8 detik...")
+        print(f"[*] [SINGLE SERVO DROP] Sumber: '{source}' — MEMBUKA Servo (Pin 12) ke 0° (650us) selama 8 detik...")
         set_servo_angle_direct(SERVO1_PIN, SERVO1_OPEN)
         current_servo_state[1] = SERVO1_OPEN
-        set_servo_angle_direct(SERVO2_PIN, SERVO2_OPEN)
-        current_servo_state[2] = SERVO2_OPEN
 
         try:
             sio.emit('pi_servo_status', {
                 'state': 'OPEN_8S',
                 'source': source,
-                'msg': f'KEDUA Servo Membuka (8s Drop Active — sumber: {source})'
+                'msg': f'Servo Membuka (8s Drop Active — sumber: {source})'
             })
         except Exception:
             pass
 
         time.sleep(8.0)
 
-        print(f"[*] [DUAL SERVO DROP] 8 Detik Selesai! MENUTUP Kembali KEDUA Servo ke 90° (1500us)...")
+        print(f"[*] [SINGLE SERVO DROP] 8 Detik Selesai! MENUTUP Kembali Servo ke 90° (1500us)...")
         set_servo_angle_direct(SERVO1_PIN, SERVO1_CLOSE)
         current_servo_state[1] = SERVO1_CLOSE
-        set_servo_angle_direct(SERVO2_PIN, SERVO2_CLOSE)
-        current_servo_state[2] = SERVO2_CLOSE
 
         try:
             sio.emit('pi_servo_status', {
                 'state': 'CLOSED',
                 'source': source,
-                'msg': f'KEDUA Servo Menutup (Drop Complete — sumber: {source})'
+                'msg': f'Servo Menutup (Drop Complete — sumber: {source})'
             })
         except Exception:
             pass
@@ -290,18 +262,21 @@ def trigger_8s_payload_drop(source: str = 'unknown'):
         time.sleep(2.0)
         if source == 'aruco_wp2':
             reset_wp2_trigger()
+        elif source == 'black_object':
+            reset_black_trigger()
         elif source == 'red_box':
             reset_red_trigger()
         else:
             reset_wp2_trigger()
+            reset_black_trigger()
             reset_red_trigger()
 
     threading.Thread(target=_routine, daemon=True).start()
 
 
 def _resolve_target_angle(servo_id: int, data: dict):
-    close_val = SERVO1_CLOSE if servo_id == 1 else SERVO2_CLOSE
-    open_val  = SERVO1_OPEN if servo_id == 1 else SERVO2_OPEN
+    close_val = SERVO1_CLOSE
+    open_val  = SERVO1_OPEN
 
     action = data.get('action')
     if action is not None:
@@ -313,7 +288,6 @@ def _resolve_target_angle(servo_id: int, data: dict):
         if action_str in ('servo_8s', 'open_8s', 'drop_8s', 'on_8s'):
             trigger_8s_payload_drop()
             return None
-        # Jika action=='angle' atau string lain, lanjut ke pengecekan key 'angle'
 
     if 'angle' in data:
         try:
@@ -330,37 +304,24 @@ def _resolve_target_angle(servo_id: int, data: dict):
 # ─── JALUR PERINTAH 1: DARI WEB GCS / TELEMETRI LAPTOP ────────────────────────
 @sio.on('pi_servo_command')
 def handle_pi_servo_command(data):
-    try:
-        raw_id = data.get('servo_id', 'all')
-        if str(raw_id).lower() in ('all', 'both', '0'):
-            for sid in (1, 2):
-                c_data = dict(data)
-                c_data['servo_id'] = sid
-                handle_pi_servo_command(c_data)
-            return
-        servo_id = int(raw_id)
-    except Exception as e:
-        print(f"[!] Format perintah servo tidak valid: {data} ({e})")
-        return
-
+    servo_id = 1
     target_angle = _resolve_target_angle(servo_id, data)
     if target_angle is None:
         return
 
-    close_val = SERVO1_CLOSE if servo_id == 1 else SERVO2_CLOSE
-    open_val  = SERVO1_OPEN if servo_id == 1 else SERVO2_OPEN
-    invert = INVERT_SERVO1 if servo_id == 1 else INVERT_SERVO2
+    close_val = SERVO1_CLOSE
+    open_val  = SERVO1_OPEN
+    invert = INVERT_SERVO1
 
     cmd_label = "OPEN" if target_angle == open_val else "CLOSE"
     angle_to_send = target_angle
     if invert:
         angle_to_send = close_val if target_angle == open_val else open_val
 
-    print(f"[*] Perintah Servo (Web/Tele): ID {servo_id} -> {cmd_label} (Target: {target_angle}°, Fisik: {angle_to_send}°)")
+    print(f"[*] Perintah Servo (Web/Tele): Pin 12 -> {cmd_label} (Target: {target_angle}°, Fisik: {angle_to_send}°)")
     
-    current_servo_state[servo_id] = target_angle
-    pin_num = SERVO1_PIN if servo_id == 1 else SERVO2_PIN
-    set_servo_angle_direct(pin_num, angle_to_send)
+    current_servo_state[1] = target_angle
+    set_servo_angle_direct(SERVO1_PIN, angle_to_send)
 
 
 # ─── JALUR PERINTAH 2: DETEKSI LANGSUNG PRESISI KAMERA PI (ARUCO WP2 CENTERED)
@@ -376,13 +337,30 @@ def handle_aruco_target_centered(data):
         # Hanya rilis jika ArUco WP2 (ID 2), belum pernah dipicu, dan posisi presisi tepat di tengah (error <= 25px)
         if marker_id == WP2_ARUCO_ID and not wp2_auto_triggered and abs(dx) <= 25 and abs(dy) <= 25:
             wp2_auto_triggered = True
-            print(f"[*] [ARUCO WP2 PRECISION TRIGGER] Drone TEPAT DI ATAS WP2! (DX:{dx}, DY:{dy}) — Membuka KEDUA Servo (8 Detik)...")
+            print(f"[*] [ARUCO WP2 PRECISION TRIGGER] Drone TEPAT DI ATAS WP2! (DX:{dx}, DY:{dy}) — Membuka Servo Pin 12 (8 Detik)...")
             trigger_8s_payload_drop(source='aruco_wp2')
     except Exception as e:
         print(f"[!] Error handle_aruco_target_centered: {e}")
 
 
-# ─── JALUR PERINTAH 3: DETEKSI RED BOX — NON-PRESISI (KAMERA CUKUP MENGARAH)
+# ─── JALUR PERINTAH 3: DETEKSI OBJEK HITAM — GRAYSCALE BOTTOM CAMERA
+@sio.on('black_object_detected')
+def handle_black_object_detected(data):
+    """Trigger servo dari Objek Hitam — Kamera Bottom Grayscale terarah ke target hitam."""
+    global black_drop_triggered
+    try:
+        in_frame = data.get('in_frame', False)
+        centered = data.get('centered', False)
+
+        if in_frame and centered and not black_drop_triggered:
+            black_drop_triggered = True
+            print(f"[*] [BLACK OBJECT TRIGGER] Objek hitam terdeteksi dan terarah! — Membuka Servo Pin 12 (8 Detik)...")
+            trigger_8s_payload_drop(source='black_object')
+    except Exception as e:
+        print(f"[!] Error handle_black_object_detected: {e}")
+
+
+# ─── JALUR PERINTAH 4: DETEKSI RED BOX — NON-PRESISI (KAMERA CUKUP MENGARAH)
 @sio.on('red_object_detected')
 def handle_red_object_detected(data):
     """Trigger servo dari Red Box — NON-PRESISI: cukup kamera mengarah ke area merah.
@@ -393,11 +371,9 @@ def handle_red_object_detected(data):
         in_frame = data.get('in_frame', False)
         centered = data.get('centered', False)  # True = dalam 80px dari center kamera
 
-        # Kondisi: red box terdeteksi dan setidaknya dalam radius longgar dari center
-        # Tambahan keamanan: 'centered' True berarti kamera sudah cukup mengarah ke kotak
         if in_frame and centered and not red_drop_triggered:
             red_drop_triggered = True
-            print(f"[*] [RED BOX NON-PRECISION TRIGGER] Red Box terdeteksi dalam frame dan terarah! — Membuka KEDUA Servo (8 Detik)...")
+            print(f"[*] [RED BOX NON-PRECISION TRIGGER] Red Box terdeteksi dalam frame dan terarah! — Membuka Servo Pin 12 (8 Detik)...")
             trigger_8s_payload_drop(source='red_box')
     except Exception as e:
         print(f"[!] Error handle_red_object_detected: {e}")
@@ -406,6 +382,11 @@ def handle_red_object_detected(data):
 @sio.on('reset_wp2_latch')
 def handle_reset_wp2_latch(data=None):
     reset_wp2_trigger()
+
+
+@sio.on('reset_black_latch')
+def handle_reset_black_latch(data=None):
+    reset_black_trigger()
 
 
 @sio.on('reset_red_latch')
@@ -441,12 +422,16 @@ def start_local_udp_server():
 
                 if event == 'aruco_target_centered':
                     handle_aruco_target_centered(payload)
+                elif event == 'black_object_detected':
+                    handle_black_object_detected(payload)
                 elif event == 'red_object_detected':
                     handle_red_object_detected(payload)
                 elif event == 'pi_servo_command':
                     handle_pi_servo_command(payload)
                 elif event == 'reset_wp2_latch':
                     handle_reset_wp2_latch(payload)
+                elif event == 'reset_black_latch':
+                    handle_reset_black_latch(payload)
                 elif event == 'reset_red_latch':
                     handle_reset_red_latch(payload)
             except Exception as e:
@@ -461,7 +446,7 @@ if __name__ == '__main__':
     time.sleep(2.0)
     init_servos_to_close()
     start_local_udp_server()
-    print("[+] Servo Node READY! Listening for Local UDP triggers and attempting GCS connection...", flush=True)
+    print("[+] Servo Node READY! Single Servo on Pin 12 active.", flush=True)
     try:
         while True:
             if not sio.connected:

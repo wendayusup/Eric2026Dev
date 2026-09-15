@@ -592,8 +592,11 @@ socket.on('status_msg', (data) => {
     console.log("[FCS GCS] Received status_msg:", data);
     const alertType = data.type === 'error' ? 'error' : (data.type === 'warning' ? 'warning' : 'info');
     const title = data.type === 'error' ? 'DRONE ERROR' : (data.type === 'warning' ? 'DRONE WARNING' : 'DRONE STATUS');
-    if (typeof showToastAlert === 'function') {
-        showToastAlert(title, data.text, alertType, 5000);
+    const msgText = data.text || '';
+    if (msgText) {
+        if (typeof showToastAlert === 'function') {
+            showToastAlert(title, msgText, alertType, 4000);
+        }
     }
 });
 
@@ -628,6 +631,10 @@ function appendApmLogMessage(data) {
     const timeStr = now.toTimeString().split(' ')[0];
     const type = data.type || 'info';
     const text = data.text || '';
+
+    if (text) {
+        addSystemLog(text, type);
+    }
 
     apmLogMessages.push({
         time: timeStr,
@@ -731,8 +738,23 @@ function closeCustomAlert() {
     }, 250);
 }
 
-// Toast notification for non-blocking events (e.g. Target Centered)
+// Toast notification: displays visual pop-up on screen AND logs Telemetry/FCU events to System Event Log
 function showToastAlert(title, message, type = 'info', duration = 4000) {
+    let level = 'info';
+    if (type === 'success') level = 'success';
+    else if (type === 'error') level = 'error';
+    else if (type === 'warning') level = 'warning';
+
+    // 1. Catat ke System Event Log HANYA untuk Telemetri / FCU / Drone Status (Servo & non-telemetri diblokir)
+    const isServoLog = (title && title.toUpperCase().includes('SERVO')) || (message && message.toLowerCase().includes('servo'));
+    if (!isServoLog && typeof addSystemLog === 'function') {
+        const logText = (title && message && !message.startsWith(title)) ? `${title}: ${message}` : (message || title);
+        if (logText) {
+            addSystemLog(logText, level);
+        }
+    }
+
+    // 2. Render visual Pop-up Toast card dengan timer progress bar di layar
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -741,7 +763,6 @@ function showToastAlert(title, message, type = 'info', duration = 4000) {
         document.body.appendChild(container);
     }
 
-    // [FIX] Cukup 1 aja: Hapus toast yang lama jika ada
     const existingToasts = container.querySelectorAll('.toast');
     existingToasts.forEach(t => t.remove());
 
@@ -750,8 +771,8 @@ function showToastAlert(title, message, type = 'info', duration = 4000) {
     
     let icon = 'ℹ️';
     if (type === 'success') icon = '✅';
-    else if (type === 'error') icon = '❌';
-    else if (type === 'warning') icon = '⚠️';
+    else if (type === 'error') icon = '⚠️';
+    else if (type === 'warning') icon = '⚡';
 
     toast.innerHTML = `
         <div class="toast-header">${icon} ${title}</div>
@@ -761,20 +782,22 @@ function showToastAlert(title, message, type = 'info', duration = 4000) {
 
     container.appendChild(toast);
 
-    // Trigger animation
-    setTimeout(() => toast.classList.add('show'), 10);
+    // Trigger slide-in animation
+    setTimeout(() => toast.classList.add('show'), 20);
 
-    // Animate progress bar
+    // Animate progress bar timer line
     const progress = toast.querySelector('.toast-progress');
-    progress.style.transition = `transform ${duration}ms linear`;
-    setTimeout(() => {
-        progress.style.transform = 'scaleX(0)';
-    }, 50);
+    if (progress) {
+        progress.style.transition = `transform ${duration}ms linear`;
+        setTimeout(() => {
+            progress.style.transform = 'scaleX(0)';
+        }, 50);
+    }
 
-    // Remove toast after duration
+    // Auto-remove toast after duration
     setTimeout(() => {
         toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400); // Wait for transition out
+        setTimeout(() => toast.remove(), 400);
     }, duration);
 }
 
@@ -946,26 +969,6 @@ socket.on('camera_status', (data) => {
 let bottomStatusTimeout = null;
 let frontStatusTimeout = null;
 
-socket.on('aruco_status', (data) => {
-    const el = document.getElementById('camera-status-text-bottom');
-    if (el) {
-        if (data.id !== undefined && data.id > 0) {
-            el.innerText = `ARUCO WP${data.id} DETECTED`;
-            el.className = "camera-status-overlay detected";
-        } else {
-            el.innerText = "SCANNING FOR ARUCO...";
-            el.className = "camera-status-overlay scanning";
-        }
-    }
-    clearTimeout(bottomStatusTimeout);
-    bottomStatusTimeout = setTimeout(() => {
-        if (el) {
-            el.innerText = "SCANNING FOR ARUCO...";
-            el.className = "camera-status-overlay scanning";
-        }
-    }, 1200);
-});
-
 socket.on('gate_status', (data) => {
     // Front camera is clean raw video display only
 });
@@ -1027,22 +1030,10 @@ document.addEventListener('DOMContentLoaded', () => {
 let logPanelOpen = false;
 
 function toggleLogPanel() {
-    logPanelOpen = !logPanelOpen;
-    const panel = document.getElementById('log-panel');
-    const backdrop = document.getElementById('log-backdrop');
-    const btn = document.getElementById('btn-log-toggle');
-    if (panel) panel.classList.toggle('open', logPanelOpen);
-    if (backdrop) backdrop.classList.toggle('open', logPanelOpen);
-    if (btn) {
-        btn.style.background = logPanelOpen
-            ? 'rgba(14, 165, 233, 0.35)'
-            : 'rgba(14, 165, 233, 0.15)';
-        btn.style.boxShadow = logPanelOpen ? '0 0 10px rgba(14,165,233,0.4)' : 'none';
-    }
-    // Scroll to bottom when opening
-    if (logPanelOpen) {
-        const console_el = document.getElementById('sys-log-console');
-        if (console_el) console_el.scrollTop = console_el.scrollHeight;
+    const console_el = document.getElementById('sys-log-console');
+    if (console_el) {
+        console_el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        console_el.scrollTop = console_el.scrollHeight;
     }
 }
 
@@ -1086,10 +1077,25 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ─── LIVE SYSTEM EVENT LOG ────────────────────────────────────────────────────
+// ─── LIVE SYSTEM EVENT LOG (HIGH PERFORMANCE & LAG-FREE) ───────────────────
+let lastLogMsg = '';
+let lastLogTime = 0;
+
 function addSystemLog(message, level = 'normal') {
+    if (!message) return;
+    
+    // Filter out internal high-frequency spam logs that cause UI lag
+    if (message.includes('param #') || message.includes('timesync') || message.includes('RTT too high')) return;
+
+    // Deduplicate identical consecutive messages within 1.5s
+    const nowTs = Date.now();
+    if (message === lastLogMsg && (nowTs - lastLogTime) < 1500) return;
+    lastLogMsg = message;
+    lastLogTime = nowTs;
+
     const console_el = document.getElementById('sys-log-console');
     if (!console_el) return;
+
     const now = new Date();
     const ts = now.getHours().toString().padStart(2,'0') + ':' +
                 now.getMinutes().toString().padStart(2,'0') + ':' +
@@ -1104,9 +1110,21 @@ function addSystemLog(message, level = 'normal') {
     const color = colorMap[level] || '#ffffff';
     const div = document.createElement('div');
     div.style.color = color;
+    div.style.whiteSpace = 'nowrap';
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
     div.textContent = `[${ts}] ${message}`;
+
     console_el.appendChild(div);
-    console_el.scrollTop = console_el.scrollHeight;
+
+    // Keep DOM light (max 60 entries) to guarantee 60FPS smooth scrolling
+    while (console_el.children.length > 60) {
+        console_el.removeChild(console_el.firstChild);
+    }
+
+    requestAnimationFrame(() => {
+        console_el.scrollTop = console_el.scrollHeight;
+    });
 }
 
 function clearSystemLog() {

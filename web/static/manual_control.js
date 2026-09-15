@@ -9,7 +9,9 @@ function sendManualAction(action) {
             return;
         }
         updateMapStatus("EMERGENCY CUT (DISARM)", "#ff453a", true);
-        if (typeof addSystemLog === 'function') addSystemLog('EMERGENCY: Force disarm / kill switch triggered!', 'error');
+        if (typeof showToastAlert === 'function') {
+            showToastAlert('EMERGENCY CUT', 'Force disarm / kill switch triggered!', 'error', 4000);
+        }
     } else if (action === 'arm') {
         if (globalTelemetry && globalTelemetry.is_armed) {
             if (typeof showToastAlert === 'function') showToastAlert('NOTICE', 'Drone is already ARMED', 'info', 2500);
@@ -115,13 +117,11 @@ function testServo(servoId, val) {
 function testBothServos(val) {
     const actionVal = val || 'open';
     console.log("[FCS GCS] testBothServos called with action:", actionVal);
-    if (typeof showToastAlert === 'function') showToastAlert('SERVO', `Setting BOTH Servos to ${actionVal.toUpperCase()}`, 'info', 2000);
+    if (typeof showToastAlert === 'function') showToastAlert('SERVO', `Setting Servo to ${actionVal.toUpperCase()}`, 'info', 2000);
     socket.emit('trigger_servo', { servo_id: 'all', action: actionVal });
-    socket.emit('trigger_servo', { servo_id: 1, action: actionVal });
-    socket.emit('trigger_servo', { servo_id: 2, action: actionVal });
 }
 
-// Socket IO Listeners for Servo Status & ArUco Precision Centered Status
+// Socket IO Listeners for Servo Status & Black Object Precision Centered Status
 if (typeof socket !== 'undefined' && socket) {
     socket.on('servo_status_update', function(data) {
         console.log("[FCS GCS] Servo Status Update:", data);
@@ -131,10 +131,10 @@ if (typeof socket !== 'undefined' && socket) {
         }
     });
 
-    socket.on('aruco_target_centered', function(data) {
-        console.log("[FCS GCS] ArUco Target Centered Event:", data);
-        if (typeof showToastAlert === 'function') {
-            showToastAlert('TARGET CENTERED', `ArUco ${data.wp || data.marker_id} is perfectly centered!`, 'success', 2500);
+    socket.on('black_object_detected', function(data) {
+        console.log("[FCS GCS] Black Object Target Event:", data);
+        if (data && data.centered && typeof showToastAlert === 'function') {
+            showToastAlert('TARGET CENTERED', 'Black Object is perfectly centered!', 'success', 2500);
         }
     });
 }

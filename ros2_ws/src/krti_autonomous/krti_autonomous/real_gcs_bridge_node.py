@@ -17,7 +17,7 @@ from rclpy.qos import qos_profile_sensor_data
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 # Import MAVROS and Standard messages
-from mavros_msgs.msg import State, VfrHud, StatusText, PositionTarget, Waypoint, WaypointReached
+from mavros_msgs.msg import State, VfrHud, StatusText, PositionTarget, Waypoint, WaypointReached, GPSRAW
 from mavros_msgs.srv import CommandBool, SetMode, CommandTOL, ParamSet, StreamRate, CommandLong, WaypointPush, WaypointClear
 from mavros_msgs.msg import ParamValue
 from geometry_msgs.msg import PoseStamped, TwistStamped
@@ -74,7 +74,10 @@ current_telemetry = {
     'yaw': 0.0,
     'speed': 0.0,
     'rssi_dbm': None,
-    'mode': 'UNKNOWN'
+    'mode': 'UNKNOWN',
+    'satellites_visible': 0,
+    'gps_fix_type': 0,
+    'eph': 999
 }
 
 latest_frames = {
@@ -251,6 +254,8 @@ class ROS2GCSBridgeNode(Node):
         self.local_pos_sub = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.local_pos_callback, qos_profile_sensor_data)
         self.local_vel_sub = self.create_subscription(TwistStamped, '/mavros/local_position/velocity_local', self.local_vel_callback, qos_profile_sensor_data)
         self.gps_sub = self.create_subscription(NavSatFix, '/mavros/global_position/global', self.gps_callback, qos_profile_sensor_data)
+        self.gps_raw_fix_sub = self.create_subscription(NavSatFix, '/mavros/global_position/raw/fix', self.gps_callback, qos_profile_sensor_data)
+        self.gps_status_sub  = self.create_subscription(GPSRAW, '/mavros/gpsstatus/gps1/raw', self.gps_status_callback, qos_profile_sensor_data)
         self.rel_alt_sub = self.create_subscription(Float64, '/mavros/global_position/rel_alt', self.rel_alt_callback, qos_profile_sensor_data)
         self.battery_sub = self.create_subscription(BatteryState, '/mavros/battery', self.battery_callback, qos_profile_sensor_data)
         self.vfr_sub = self.create_subscription(VfrHud, '/mavros/vfr_hud', self.vfr_hud_callback, qos_profile_sensor_data)
@@ -374,6 +379,8 @@ class ROS2GCSBridgeNode(Node):
         current_telemetry['connected'] = msg.connected
         current_telemetry['is_armed'] = msg.armed
         current_telemetry['mode'] = msg.mode
+        if msg.connected:
+            self.last_any_data_time = time.time()
 
         # Auto-configure stream rates on first successful connection
         if msg.connected and not self._stream_rates_configured:
@@ -451,6 +458,8 @@ class ROS2GCSBridgeNode(Node):
 
     def local_pos_callback(self, msg):
         global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
         # ENU position from MAVROS (x=East, y=North, z=Up) — matches ArduPilot GUIDED setpoint convention.
         self.local_x = msg.pose.position.x
         self.local_y = msg.pose.position.y
@@ -468,6 +477,8 @@ class ROS2GCSBridgeNode(Node):
     def rel_alt_callback(self, msg):
         """Relative Altitude subscriber (AGL / relative to home in meters)."""
         global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
         alt = msg.data
         if not (math.isnan(alt) or math.isinf(alt)):
             filtered_alt = self.filt_alt.filter(alt)
@@ -475,6 +486,8 @@ class ROS2GCSBridgeNode(Node):
 
     def local_vel_callback(self, msg):
         global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
         vx = msg.twist.linear.x
         vy = msg.twist.linear.y
         vz = msg.twist.linear.z
@@ -487,6 +500,8 @@ class ROS2GCSBridgeNode(Node):
 
     def gps_callback(self, msg):
         global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
         lat = msg.latitude
         lng = msg.longitude
         alt = msg.altitude
@@ -494,17 +509,37 @@ class ROS2GCSBridgeNode(Node):
         if math.isnan(lng) or math.isinf(lng): lng = 0.0
         if math.isnan(alt) or math.isinf(alt): alt = 0.0
 
-        current_telemetry['lat'] = lat
-        current_telemetry['lng'] = lng
-        filtered_alt_abs = self.filt_alt_abs.filter(alt)
-        current_telemetry['alt_abs'] = round(filtered_alt_abs, 2)
-        if self.ref_lat is None and msg.status.status >= 0 and lat != 0.0 and lng != 0.0:
-            self.ref_lat = lat
-            self.ref_lon = lng
-            self.ref_alt = alt
+        if lat != 0.0 and lng != 0.0:
+            current_telemetry['lat'] = lat
+            current_telemetry['lng'] = lng
+            filtered_alt_abs = self.filt_alt_abs.filter(alt)
+            current_telemetry['alt_abs'] = round(filtered_alt_abs, 2)
+            if self.ref_lat is None:
+                self.ref_lat = lat
+                self.ref_lon = lng
+                self.ref_alt = alt
+
+    def gps_status_callback(self, msg):
+        global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
+        current_telemetry['satellites_visible'] = msg.satellites_visible
+        current_telemetry['gps_fix_type'] = msg.fix_type
+        current_telemetry['eph'] = msg.eph
+
+        if (current_telemetry.get('lat', 0.0) == 0.0 or current_telemetry.get('lat') is None) and msg.lat != 0:
+            lat = msg.lat / 1e7
+            lng = msg.lon / 1e7
+            alt = msg.alt / 1e3
+            current_telemetry['lat'] = lat
+            current_telemetry['lng'] = lng
+            filtered_alt_abs = self.filt_alt_abs.filter(alt)
+            current_telemetry['alt_abs'] = round(filtered_alt_abs, 2)
 
     def battery_callback(self, msg):
         global current_telemetry
+        self.last_any_data_time = time.time()
+        current_telemetry['connected'] = True
         raw_voltage = msg.voltage if not (math.isnan(msg.voltage) or math.isinf(msg.voltage)) else 0.0
         pct = msg.percentage
         if raw_voltage > 0.0:
@@ -1583,6 +1618,15 @@ def handle_trigger_servo(data):
 
 @socketio.on('pi_camera_status')
 def handle_pi_camera_status(data):
+    try:
+        from flask import request
+        client_ip = getattr(request, 'remote_addr', None)
+        if client_ip and client_ip != '127.0.0.1':
+            with open('/tmp/last_pi_ip.txt', 'w') as f:
+                f.write(client_ip)
+    except Exception:
+        pass
+
     camera_id = data.get('camera')
     if camera_id not in ('front', 'bottom'):
         return
@@ -1596,6 +1640,15 @@ def handle_pi_camera_status(data):
 
 @socketio.on('pi_camera_feed')
 def handle_pi_camera_feed(data):
+    try:
+        from flask import request
+        client_ip = getattr(request, 'remote_addr', None)
+        if client_ip and client_ip != '127.0.0.1':
+            with open('/tmp/last_pi_ip.txt', 'w') as f:
+                f.write(client_ip)
+    except Exception:
+        pass
+
     camera_id = data.get('camera')
     img_b64 = data.get('image')
     if not camera_id or not img_b64:

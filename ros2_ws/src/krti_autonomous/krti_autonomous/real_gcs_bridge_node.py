@@ -1560,6 +1560,14 @@ def handle_set_heading_offset(data):
     if ros_node_instance:
         ros_node_instance.get_logger().info(f"[GCS] Heading offset set to {offset}°")
 
+@socketio.on('set_camera_resolution')
+def handle_set_camera_resolution(data):
+    """Pengaturan resolusi/stream profile kamera dari Web UI. Broadcast ke Raspberry Pi."""
+    profile = data.get('profile', 'medium')
+    if ros_node_instance:
+        ros_node_instance.get_logger().info(f"[GCS] Broadized camera resolution change request: {profile}")
+    socketio.emit('set_camera_resolution', data)
+
 def start_auto_mission_execution():
     if ros_node_instance is None: return
     if len(ros_node_instance.auto_mission_array) > 0:

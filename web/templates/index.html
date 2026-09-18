@@ -99,9 +99,22 @@
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <!-- Map Layer Select Dropdown -->
                     <select id="select-map-layer" onchange="changeMapLayer(this.value)"
-                        style="padding: 2px 24px 2px 8px; width: 145px; font-size: 11px; height: 26px; border-radius: 6px; background: #ffffff; border: 1px solid var(--border-soft); font-weight: 700; cursor: pointer; color: #0f172a;">
-                        <option value="satellite" selected>SATELLITE MODE</option>
+                        style="padding: 2px 24px 2px 8px; width: 165px; font-size: 11px; height: 26px; border-radius: 6px; background: #ffffff; border: 1px solid var(--border-soft); font-weight: 700; cursor: pointer; color: #0f172a;">
+                        <option value="googleSat" selected>GOOGLE SATELLITE</option>
+                        <option value="googleHybrid">GOOGLE HYBRID</option>
+                        <option value="satellite">ESRI SATELLITE</option>
                         <option value="terrain">TERRAIN MODE</option>
+                        <option value="osm">OPENSTREETMAP</option>
+                    </select>
+
+                    <!-- Camera Stream Resolution Dropdown -->
+                    <select id="select-cam-res" class="cam-res-select" onchange="changeCameraResolution(this.value)" title="Camera Stream Resolution"
+                        style="padding: 2px 24px 2px 8px; width: 165px; font-size: 11px; height: 26px; border-radius: 6px; background: #ffffff; border: 1px solid var(--border-soft); font-weight: 700; cursor: pointer; color: #0f172a;">
+                        <option value="hd">CAM: HD (640x360)</option>
+                        <option value="high">CAM: HIGH (480x270)</option>
+                        <option value="medium" selected>CAM: BALANCED (400x225)</option>
+                        <option value="low">CAM: LOW (320x180)</option>
+                        <option value="auto">CAM: AUTO ADAPTIVE</option>
                     </select>
 
                     <!-- Theme Toggle Button (Light / Dark) -->

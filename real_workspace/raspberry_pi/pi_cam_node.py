@@ -69,10 +69,11 @@ FRAME_INTERVAL  = 1.0 / STREAM_FPS
 
 # Mode adaptive ultra-ringan untuk stabilitas jaringan Wi-Fi
 ADAPTIVE_STREAM = True
-STREAM_PROFILE_HIGH = {'width': 480, 'height': 270, 'fps': 12, 'quality': 45}
-STREAM_PROFILE_MEDIUM = {'width': 400, 'height': 225, 'fps': 10, 'quality': 38}
-STREAM_PROFILE_LOW = {'width': 320, 'height': 180, 'fps': 8, 'quality': 30}
-CURRENT_STREAM_PROFILE = STREAM_PROFILE_HIGH
+STREAM_PROFILE_HD     = {'width': 640, 'height': 360, 'fps': 20, 'quality': 65}
+STREAM_PROFILE_HIGH   = {'width': 480, 'height': 270, 'fps': 15, 'quality': 50}
+STREAM_PROFILE_MEDIUM = {'width': 400, 'height': 225, 'fps': 12, 'quality': 40}
+STREAM_PROFILE_LOW    = {'width': 320, 'height': 180, 'fps': 8, 'quality': 30}
+CURRENT_STREAM_PROFILE = STREAM_PROFILE_MEDIUM
 
 # Counter untuk menilai apakah koneksi web sedang berat
 STREAM_FAILURES = 0
@@ -425,6 +426,29 @@ def connect():
 @sio.event
 def disconnect():
     print("[-] Disconnected from GCS.", flush=True)
+
+@sio.on('set_camera_resolution')
+def on_set_camera_resolution(data):
+    global CURRENT_STREAM_PROFILE, ADAPTIVE_STREAM, STREAM_FAILURES
+    profile_key = str(data.get('profile', 'medium')).lower()
+    print(f"[+] Received camera resolution switch request from Web: '{profile_key}'", flush=True)
+    STREAM_FAILURES = 0  # Reset failure count when profile is manually changed
+    if profile_key == 'hd':
+        CURRENT_STREAM_PROFILE = STREAM_PROFILE_HD
+        ADAPTIVE_STREAM = False
+    elif profile_key == 'high':
+        CURRENT_STREAM_PROFILE = STREAM_PROFILE_HIGH
+        ADAPTIVE_STREAM = False
+    elif profile_key == 'low':
+        CURRENT_STREAM_PROFILE = STREAM_PROFILE_LOW
+        ADAPTIVE_STREAM = False
+    elif profile_key == 'auto':
+        ADAPTIVE_STREAM = True
+        CURRENT_STREAM_PROFILE = STREAM_PROFILE_MEDIUM
+    else:  # default 'medium' / 'balanced'
+        CURRENT_STREAM_PROFILE = STREAM_PROFILE_MEDIUM
+        ADAPTIVE_STREAM = False
+    print(f"[+] Active Stream Profile updated: {CURRENT_STREAM_PROFILE} (Adaptive={ADAPTIVE_STREAM})", flush=True)
 
 # ─── WiFi Monitor ─────────────────────────────────────────────────────────────
 

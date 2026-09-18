@@ -6,33 +6,38 @@ const map = L.map('map', {
     minZoom: 3
 }).setView([DEFAULT_LAT, DEFAULT_LNG], 20);
 
-// Definisi Map Layers (Terrain, Satellite, OpenStreetMap, Google Satellite)
+// Definisi Map Layers (Google Satellite, Google Hybrid, Esri Satellite, Terrain, OpenStreetMap)
 const layers = {
-    terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 23,
-        maxNativeZoom: 18,
-        attribution: 'Esri Topo' 
-    }),
-    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 23,
-        maxNativeZoom: 19,
-        attribution: 'Esri Satellite' 
-    }),
-    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 23,
-        maxNativeZoom: 19,
-        attribution: 'OpenStreetMap'
-    }),
     googleSat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
         maxZoom: 23,
         maxNativeZoom: 20,
         attribution: 'Google Satellite'
+    }),
+    googleHybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 23,
+        maxNativeZoom: 20,
+        attribution: 'Google Hybrid'
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
+        maxZoom: 23,
+        maxNativeZoom: 17,
+        attribution: 'Esri Satellite' 
+    }),
+    terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { 
+        maxZoom: 23,
+        maxNativeZoom: 17,
+        attribution: 'Esri Topo' 
+    }),
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 23,
+        maxNativeZoom: 18,
+        attribution: 'OpenStreetMap'
     })
 };
 
-// Set Default Layer to Satellite
-layers.satellite.addTo(map);
-let activeLayerKey = 'satellite';
+// Set Default Layer to Google Satellite (Tampilan paling jernih & support zoom tinggi tanpa 'not available')
+layers.googleSat.addTo(map);
+let activeLayerKey = 'googleSat';
 
 setTimeout(() => { if (map) map.invalidateSize(); }, 300);
 window.addEventListener('resize', () => { if (map) map.invalidateSize(); });

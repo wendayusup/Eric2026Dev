@@ -163,3 +163,27 @@ function resetHeadingOffset() {
         showToastAlert('COMPASS OFFSET', 'Heading offset reset to 0°', 'info', 2000);
     }
 }
+
+function changeCameraResolution(profile) {
+    console.log("[FCS GCS] changeCameraResolution called with profile:", profile);
+    const selectors = document.querySelectorAll('.cam-res-select');
+    selectors.forEach(sel => {
+        sel.value = profile;
+    });
+
+    if (typeof socket !== 'undefined' && socket) {
+        socket.emit('set_camera_resolution', { profile: profile });
+    }
+
+    if (typeof showToastAlert === 'function') {
+        const labels = {
+            'hd': 'HD 640x360 (High Quality)',
+            'high': 'High 480x270 (Standard)',
+            'medium': 'Balanced 400x225 (Smooth)',
+            'low': 'Low Latency 320x180 (Ultra Fast)',
+            'auto': 'Auto Adaptive Network'
+        };
+        const labelText = labels[profile] || profile;
+        showToastAlert('CAMERA RES', `Stream profile set to: ${labelText}`, 'info', 2500);
+    }
+}

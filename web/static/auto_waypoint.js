@@ -9,7 +9,7 @@ function addWaypointToPipeline(type) {
     let hasLanding = autoMissionArray.some(wp => wp.type === 'landing');
 
     // Jika drone sedang terbang, bersihkan landing point lama saat menambah waypoint baru
-    const isFlying = globalTelemetry && globalTelemetry.alt > 0.5 && globalTelemetry.is_armed;
+    const isFlying = globalTelemetry && globalTelemetry.is_armed;
     if (isFlying && hasLanding && (type === 'waypoint' || type === 'takeoff')) {
         autoMissionArray = autoMissionArray.filter(wp => wp.type !== 'landing');
         hasLanding = false; // Reset status
@@ -20,11 +20,18 @@ function addWaypointToPipeline(type) {
         if (hasTakeoff) {
             return showCustomAlert("Route Limit", "Warning: The route can only have 1 TAKEOFF point!", "warning");
         }
-        if (!globalTelemetry || globalTelemetry.lat === 0 || globalTelemetry.lng === 0) {
-            return showCustomAlert("GPS Lock Failed", "FAILED! No GPS lock detected on the drone. Make sure telemetry is connected before adding a Takeoff point.", "error");
+        // Jika drone sudah memiliki GPS Lock, gunakan koordinat drone
+        if (globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0 && globalTelemetry.lng && globalTelemetry.lng !== 0) {
+            lat = globalTelemetry.lat;
+            lng = globalTelemetry.lng;
+        } else if (mapSelectedLatLng) {
+            // Fallback: Jika GPS drone belum fix, gunakan titik lokasi yang diklik di peta
+            lat = mapSelectedLatLng.lat;
+            lng = mapSelectedLatLng.lng;
+            showCustomAlert("Takeoff from Map", "Drone GPS is not fixed yet. Takeoff point set to selected map coordinate.", "info");
+        } else {
+            return showCustomAlert("Select Map Location", "Drone GPS is not fixed yet! Please select a coordinate on the map for the TAKEOFF point.", "warning");
         }
-        lat = globalTelemetry.lat;
-        lng = globalTelemetry.lng;
     } else {
         if (type === 'landing' && hasLanding) {
             return showCustomAlert("Route Limit", "Warning: The route can only have 1 LANDING point!", "warning");

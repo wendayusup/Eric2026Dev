@@ -6,27 +6,12 @@ const map = L.map('map', {
     minZoom: 3
 }).setView([DEFAULT_LAT, DEFAULT_LNG], 20);
 
-// Definisi Map Layers (Google Satellite, Google Hybrid, Esri Satellite, Terrain, OpenStreetMap)
+// Definisi Map Layers (Satellite Map & OpenStreetMap)
 const layers = {
     googleSat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
         maxZoom: 23,
         maxNativeZoom: 20,
-        attribution: 'Google Satellite'
-    }),
-    googleHybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-        maxZoom: 23,
-        maxNativeZoom: 20,
-        attribution: 'Google Hybrid'
-    }),
-    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 23,
-        maxNativeZoom: 17,
-        attribution: 'Esri Satellite' 
-    }),
-    terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 23,
-        maxNativeZoom: 17,
-        attribution: 'Esri Topo' 
+        attribution: 'Satellite Map'
     }),
     osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 23,
@@ -453,16 +438,20 @@ function switchMode(mode) {
 // sendKrtiAction is moved to krti_mode.js
 
 function triggerUploadProcess(type) {
+    // Pengecekan koneksi telemetry minimal
+    const isTelemConnected = (Date.now() - lastTelemetryTime) < 5000;
+    if (!isTelemConnected) {
+        return showCustomAlert("Telemetry Link Error", "FAILED! Telemetry link is disconnected. Please ensure telemetry is connected first.", "error");
+    }
+
     if (type === 'manual') {
         const targetLatLng = mapSelectedLatLng || lastManualTargetLatLng;
         if (!targetLatLng) return showCustomAlert("Notification", "Please select 1 point on the map first!", "warning");
-        const isFlying = globalTelemetry && globalTelemetry.is_armed && globalTelemetry.alt >= 0.5;
-        if (!isFlying) return showCustomAlert("Manual Guided Failed", "FAILED! Drone must be armed and flying (alt >= 0.5m) before executing manual guided.", "error");
     } else if (type === 'auto') {
         const takeoffs = autoMissionArray.filter(wp => wp.type === 'takeoff').length;
         const waypoints = autoMissionArray.filter(wp => wp.type === 'waypoint').length;
         const landings = autoMissionArray.filter(wp => wp.type === 'landing').length;
-        const isFlying = globalTelemetry && globalTelemetry.is_armed && globalTelemetry.alt >= 0.5;
+        const isFlying = globalTelemetry && globalTelemetry.is_armed;
 
         if (isFlying) {
             // Drone is already flying: Takeoff is optional (max 1)
@@ -890,6 +879,9 @@ socket.on('telemetry_data', (data) => {
     if (data.lat && data.lat !== 0) {
         droneMarker.setLatLng([data.lat, data.lng]);
         if (followDrone) map.panTo([data.lat, data.lng]);
+    } else {
+        droneMarker.setLatLng([DEFAULT_LAT, DEFAULT_LNG]);
+        if (followDrone) map.panTo([DEFAULT_LAT, DEFAULT_LNG]);
     }
     const el = document.getElementById('drone-marker-element');
     if (el) el.style.transform = `rotate(${data.heading || 0}deg)`;

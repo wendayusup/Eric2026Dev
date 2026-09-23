@@ -40,6 +40,17 @@ for ip in $IP_CANDIDATES; do
 done
 
 if [ -z "$RASPI_IP" ]; then
+    # Try mDNS hostname lookup (f15.local)
+    MDNS_IP=$(getent hosts f15.local 2>/dev/null | awk '{print $1}')
+    if [ -n "$MDNS_IP" ] && ping -c 1 -W 1 "$MDNS_IP" > /dev/null 2>&1; then
+        if timeout 3 bash -c "true &>/dev/null > /dev/tcp/$MDNS_IP/22" >/dev/null 2>&1; then
+            RASPI_IP="$MDNS_IP"
+            echo "[+] Detected Pi IP via mDNS (f15.local): $RASPI_IP"
+        fi
+    fi
+fi
+
+if [ -z "$RASPI_IP" ]; then
     # Try broadcast ping if not in ARP table
     echo "[*] Trying broadcast ping method..."
     ping -b -c 1 255.255.255.255 > /dev/null 2>&1

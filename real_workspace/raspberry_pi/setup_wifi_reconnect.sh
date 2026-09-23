@@ -18,12 +18,20 @@ echo "============================================="
 if systemctl is-active NetworkManager >/dev/null 2>&1; then
     echo "[*] Mendaftarkan profil Wi-Fi 'discrete' ke NetworkManager..."
     
-    # Setup profil 'discrete'
+    # Setup profil 'discrete' untuk semua interface Wi-Fi (Internal wlan0 & USB Dongle Antenna)
     nmcli connection delete "discrete" >/dev/null 2>&1
+    nmcli connection delete "discrete-usb" >/dev/null 2>&1
+    
+    # Connection 1: wlan0 (Internal)
     nmcli connection add type wifi con-name "discrete" ifname wlan0 ssid "discrete" >/dev/null 2>&1
     nmcli connection modify "discrete" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "wakanda_31" >/dev/null 2>&1
-    nmcli connection modify "discrete" connection.autoconnect yes connection.autoconnect-priority 100 connection.autoconnect-retries 0
-    echo "[✓] Profil 'discrete' didaftarkan."
+    nmcli connection modify "discrete" connection.autoconnect yes connection.autoconnect-priority 50 connection.autoconnect-retries 0
+    
+    # Connection 2: USB Antenna (wlxa4e6155cb715 / wildcard)
+    nmcli connection add type wifi con-name "discrete-usb" ifname "*" ssid "discrete" >/dev/null 2>&1
+    nmcli connection modify "discrete-usb" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "wakanda_31" >/dev/null 2>&1
+    nmcli connection modify "discrete-usb" connection.autoconnect yes connection.autoconnect-priority 100 connection.autoconnect-retries 0
+    echo "[✓] Profil 'discrete' didaftarkan untuk Dual Wi-Fi (Internal & USB Antenna)."
 
     # Matikan power save secara permanen di NetworkManager
     if [ -d "/etc/NetworkManager/conf.d" ]; then
@@ -93,8 +101,8 @@ while true; do
         if [ "$FAIL_COUNT" -ge 5 ]; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Koneksi benar-benar terputus 5x berturut-turut. Mencoba reconnect ke 'discrete'..." >> "$LOG_FILE"
 
-            # Hubungkan ulang ke 'discrete'
-            nmcli connection up "discrete" >/dev/null 2>&1
+            # Hubungkan ulang ke 'discrete-usb' atau 'discrete'
+            nmcli connection up "discrete-usb" >/dev/null 2>&1 || nmcli connection up "discrete" >/dev/null 2>&1
 
             sleep 5
             NEW_GW=$(ip route | grep default | awk '{print $3}' | head -n 1)

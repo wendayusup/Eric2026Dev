@@ -41,66 +41,43 @@ function sendTakeoffAction() {
 }
 
 function updateManualGuidedPath() {
-    if (!manualStartLatLng || !manualTargetLatLng) return;
-    if (globalTelemetry.lat === 0 || globalTelemetry.lng === 0) return;
+    // SELALU bersihkan segment lama dari peta tanpa syarat agar tidak ada garis berbekas/numpuk
+    if (typeof manualSegments !== 'undefined' && manualSegments.length > 0) {
+        manualSegments.forEach(s => {
+            if (s && map.hasLayer(s)) {
+                map.removeLayer(s);
+            }
+        });
+        manualSegments = [];
+    }
 
-    // Bersihkan segment lama dari peta
-    manualSegments.forEach(s => map.removeLayer(s));
-    manualSegments = [];
+    if (!manualTargetLatLng) return;
 
-    const dronePos = [globalTelemetry.lat, globalTelemetry.lng];
+    // Gunakan posisi Drone Marker nyata jika ada GPS, atau fallback ke posisi marker default di peta
+    let droneLat = (globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0) ? globalTelemetry.lat : DEFAULT_LAT;
+    let droneLng = (globalTelemetry && globalTelemetry.lng && globalTelemetry.lng !== 0) ? globalTelemetry.lng : DEFAULT_LNG;
+
+    const dronePos = [droneLat, droneLng];
     const targetPos = [manualTargetLatLng.lat, manualTargetLatLng.lng];
 
-    // Hitung jarak tersisa dari drone ke target
-    const distance = map.distance(L.latLng(dronePos), L.latLng(targetPos));
+    // Gambar segment aktif murni (Drone -> Target) - Glowing Biru
+    const glowLine = L.polyline([dronePos, targetPos], {
+        color: 'var(--apple-blue)',
+        weight: 10,
+        opacity: 0.35,
+        dashArray: '6, 12',
+        className: 'manual-glow-line'
+    }).addTo(map);
 
-    if (distance < 2.0) {
-        // Sudah sampai target, gambar seluruh garis sebagai abu-abu
-        const grayLine = L.polyline([[manualStartLatLng.lat, manualStartLatLng.lng], targetPos], {
-            color: '#8e8e93',
-            weight: 3,
-            opacity: 0.6,
-            dashArray: '6, 12'
-        }).addTo(map);
-        manualSegments.push(grayLine);
+    const mainLine = L.polyline([dronePos, targetPos], {
+        color: 'var(--apple-blue)',
+        weight: 3,
+        opacity: 0.9,
+        dashArray: '6, 12',
+        className: 'manual-main-line'
+    }).addTo(map);
 
-        // Ubah warna selection marker target jadi abu-abu
-        if (tempSelectionMarker) {
-            tempSelectionMarker.setStyle({ fillColor: '#8e8e93' });
-        }
-    } else {
-        // Belum sampai target:
-        // 1. Gambar segment yang sudah dilewati (Start -> Drone)
-        const distFromStart = map.distance(L.latLng([manualStartLatLng.lat, manualStartLatLng.lng]), L.latLng(dronePos));
-        if (distFromStart > 1.0) {
-            const passedLine = L.polyline([[manualStartLatLng.lat, manualStartLatLng.lng], dronePos], {
-                color: '#8e8e93',
-                weight: 3,
-                opacity: 0.6,
-                dashArray: '6, 12'
-            }).addTo(map);
-            manualSegments.push(passedLine);
-        }
-
-        // 2. Gambar segment aktif yang akan dilewati (Drone -> Target) - Glowing Biru
-        const glowLine = L.polyline([dronePos, targetPos], {
-            color: 'var(--apple-blue)',
-            weight: 10,
-            opacity: 0.35,
-            dashArray: '6, 12',
-            className: 'manual-glow-line'
-        }).addTo(map);
-
-        const mainLine = L.polyline([dronePos, targetPos], {
-            color: 'var(--apple-blue)',
-            weight: 3,
-            opacity: 0.9,
-            dashArray: '6, 12',
-            className: 'manual-main-line'
-        }).addTo(map);
-
-        manualSegments.push(glowLine, mainLine);
-    }
+    manualSegments.push(glowLine, mainLine);
 }
 
 function testServo(servoId, val) {

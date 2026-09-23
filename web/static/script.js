@@ -267,10 +267,45 @@ function markRaspiActive() {
     updateRaspiStatus("CONNECTED", "#34c759");
 }
 
-// Connection checker interval for Telem & Raspi
+// Connection & GPS Fix Checker interval for Upload Buttons
 setInterval(() => {
+    const isTelemConnected = (Date.now() - lastTelemetryTime) < 5000;
+    const hasGpsFix = isTelemConnected && globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0 && globalTelemetry.lng && globalTelemetry.lng !== 0;
+
+    // Update Manual Upload Button
+    const btnManualUpload = document.getElementById('btn-manual-upload');
+    if (btnManualUpload) {
+        if (!hasGpsFix) {
+            btnManualUpload.disabled = true;
+            btnManualUpload.style.opacity = '0.4';
+            btnManualUpload.style.cursor = 'not-allowed';
+            btnManualUpload.title = 'GPS Lock Required for Flight Upload';
+        } else {
+            btnManualUpload.disabled = false;
+            btnManualUpload.style.opacity = '1.0';
+            btnManualUpload.style.cursor = 'pointer';
+            btnManualUpload.title = 'Upload Manual Target to Drone';
+        }
+    }
+
+    // Update Auto Mission Upload Button
+    const btnAutoUpload = document.getElementById('btn-auto-upload');
+    if (btnAutoUpload) {
+        if (!hasGpsFix) {
+            btnAutoUpload.disabled = true;
+            btnAutoUpload.style.opacity = '0.4';
+            btnAutoUpload.style.cursor = 'not-allowed';
+            btnAutoUpload.title = 'GPS Lock Required for Flight Upload';
+        } else {
+            btnAutoUpload.disabled = false;
+            btnAutoUpload.style.opacity = '1.0';
+            btnAutoUpload.style.cursor = 'pointer';
+            btnAutoUpload.title = 'Transmit Waypoint Mission to Drone';
+        }
+    }
+
     // 1. Telemetry Check
-    if (Date.now() - lastTelemetryTime > 5000) {
+    if (!isTelemConnected) {
         isConnectedState = false;
         if (!statusTimeout) {
             updateMapStatus("DISCONNECTED", "#ff453a", false);
@@ -340,6 +375,15 @@ map.on('click', function (e) {
 
     if (currentMode === 'manual') {
         document.getElementById('manual-target-coords').innerText = `${mapSelectedLatLng.lat.toFixed(5)}, ${mapSelectedLatLng.lng.toFixed(5)}`;
+        
+        // LANGSUG SHOW GARIS PUTUS-PUTUS SEKETIKA SAAT TITIK DIKLIK
+        manualTargetLatLng = { lat: mapSelectedLatLng.lat, lng: mapSelectedLatLng.lng };
+        if (!manualStartLatLng && globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0) {
+            manualStartLatLng = { lat: globalTelemetry.lat, lng: globalTelemetry.lng };
+        } else if (!manualStartLatLng) {
+            manualStartLatLng = { lat: mapSelectedLatLng.lat, lng: mapSelectedLatLng.lng };
+        }
+        updateManualGuidedPath();
     } else if (currentMode === 'krti') {
         // In KRTI mode: clicking map sets the GPS for current selected slot and opens modal
         window._capturedLat = mapSelectedLatLng.lat;
@@ -875,7 +919,7 @@ socket.on('telemetry_data', (data) => {
         modeSelect.value = data.mode;
     }
 
-    // Drone marker on map
+    // Drone marker on map & heading rotation (0 deg = North)
     if (data.lat && data.lat !== 0) {
         droneMarker.setLatLng([data.lat, data.lng]);
         if (followDrone) map.panTo([data.lat, data.lng]);
@@ -884,7 +928,10 @@ socket.on('telemetry_data', (data) => {
         if (followDrone) map.panTo([DEFAULT_LAT, DEFAULT_LNG]);
     }
     const el = document.getElementById('drone-marker-element');
-    if (el) el.style.transform = `rotate(${data.heading || 0}deg)`;
+    if (el) {
+        const headingDeg = (data.heading !== undefined && data.heading !== null) ? data.heading : 0;
+        el.style.transform = `rotate(${headingDeg}deg)`;
+    }
 
     updateManualGuidedPath();
 

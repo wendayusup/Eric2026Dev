@@ -21,7 +21,7 @@ import threading
 
 # ─── Configuration ─────────────────────────────────────────────────────────
 
-LAPTOP_IP = "10.190.143.76"  # Default fallback IP GCS Laptop
+LAPTOP_IP = "10.70.6.76"  # Default fallback IP GCS Laptop
 GCS_URL = f"http://{LAPTOP_IP}:5000"
 
 SERVO1_PIN = 12  # GPIO12 (PWM0, Physical Pin 32)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy_to_pi.sh — Deploy latest KRTI code to Raspberry Pi
+# deploy_to_pi.sh — Deploy latest ERIC code to Raspberry Pi
 # Usage: bash deploy_to_pi.sh
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
@@ -149,12 +149,13 @@ fi
 echo "[*] Copying files to $PI_USER@$RASPI_IP:/home/$PI_USER/ ..."
 
 scp -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
     -o ConnectTimeout=3 \
     raspberry_pi/pi_cam_node.py \
     raspberry_pi/pi_servo_node.py \
     raspberry_pi/pi_led_node.py \
     raspberry_pi/start_nodes.sh \
-    raspberry_pi/krti_nodes.service \
+    raspberry_pi/eric_nodes.service \
     raspberry_pi/setup_wifi_reconnect.sh \
     raspberry_pi/setup_wifi_failover.sh \
     "$PI_USER@$RASPI_IP:/home/$PI_USER/"
@@ -170,27 +171,39 @@ echo ""
 echo "[*] Configuring services and permissions on Pi..."
 
 ssh -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
     -o ServerAliveInterval=10 \
     -o ServerAliveCountMax=6 \
     -o ConnectTimeout=15 \
     "$PI_USER@$RASPI_IP" \
     "echo '$PI_SUDO_PASS' | sudo -S bash -c '
+        echo \"[1/6] Setting executable permissions...\"
         chmod +x /home/polman/start_nodes.sh /home/polman/pi_cam_node.py /home/polman/pi_servo_node.py /home/polman/setup_wifi_reconnect.sh /home/polman/setup_wifi_failover.sh
-        bash /home/polman/setup_wifi_failover.sh >/dev/null 2>&1
-        bash /home/polman/setup_wifi_reconnect.sh >/dev/null 2>&1
-        cp /home/polman/krti_nodes.service /etc/systemd/system/
+        
+        echo \"[2/6] Installing system packages (python3-pip, opencv, socketio)...\"
+        apt update -y
+        apt install -y python3-pip python3-opencv python3-socketio python3-websocket net-tools network-manager || pip3 install opencv-python python-socketio websocket-client
+        
+        echo \"[4/6] Setting up dual Wi-Fi antenna failover & auto-reconnect...\"
+        bash /home/polman/setup_wifi_failover.sh
+        bash /home/polman/setup_wifi_reconnect.sh
+        
+        echo \"[5/6] Registering eric_nodes.service...\"
+        cp /home/polman/eric_nodes.service /etc/systemd/system/
         systemctl daemon-reload
-        systemctl enable krti_nodes.service
-        systemctl restart krti_nodes.service
-        echo SERVICE_OK
-    ' && systemctl status krti_nodes.service --no-pager | head -20"
+        systemctl enable eric_nodes.service
+        systemctl restart eric_nodes.service
+        
+        echo \"[6/6] Verifying eric_nodes.service status...\"
+        systemctl status eric_nodes.service --no-pager | head -20
+    '"
 
 SSH_EXIT=$?
 
 if [ $SSH_EXIT -eq 0 ]; then
     echo ""
     echo "[*] Reading camera and servo logs..."
-    ssh -o StrictHostKeyChecking=no "$PI_USER@$RASPI_IP" \
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$PI_USER@$RASPI_IP" \
         "echo '  [Pi] Camera log (last 20 lines):' && (tail -20 /home/polman/pi_cam.log 2>/dev/null || echo '  (log empty)') && echo '' && echo '  [Pi] Servo log (last 20 lines):' && (tail -20 /home/polman/pi_servo.log 2>/dev/null || echo '  (log empty)')"
 
     echo ""
@@ -206,6 +219,6 @@ else
     echo ""
     echo "[!] Error during remote setup."
     echo "    Try manually: ssh $PI_USER@$RASPI_IP"
-    echo "    Then run:     sudo systemctl restart krti_nodes.service"
+    echo "    Then run:     sudo systemctl restart eric_nodes.service"
     exit 1
 fi

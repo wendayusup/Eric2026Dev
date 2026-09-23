@@ -1,6 +1,6 @@
 #!/bin/bash
 # start_nodes.sh — Startup script untuk semua node ERIC 2026 di Raspberry Pi
-# Jalankan via systemd (krti_nodes.service) atau manual: bash start_nodes.sh
+# Jalankan via systemd (eric_nodes.service) atau manual: bash start_nodes.sh
 
 LOG_DIR="/home/polman"
 
@@ -36,14 +36,10 @@ python3 -u "$LOG_DIR/pi_led_node.py" > "$LOG_DIR/pi_led.log" 2>&1 &
 echo "[*] Menjalankan Node Kamera & Vision..."
 python3 -u "$LOG_DIR/pi_cam_node.py" > "$LOG_DIR/pi_cam.log" 2>&1 &
 
-# Node 3: Servo via Socket.IO
+# (Servo disabled per user request)
 
-echo "[*] Menjalankan Node Servo (Socket.IO)..."
-python3 -u "$LOG_DIR/pi_servo_node.py" > "$LOG_DIR/pi_servo.log" 2>&1 &
-
-echo "[✓] Semua node ERIC 2026 berhasil dijalankan di background!"
+echo "[✓] Node Kamera & LED ERIC 2026 berhasil dijalankan di background!"
 echo "    Log kamera : $LOG_DIR/pi_cam.log"
-echo "    Log servo  : $LOG_DIR/pi_servo.log"
 echo "    Log LED    : $LOG_DIR/pi_led.log"
 
 # Tunggu anak proses, tapi jangan mematikan service jika satu node crash

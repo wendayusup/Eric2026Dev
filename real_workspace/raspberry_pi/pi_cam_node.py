@@ -52,7 +52,7 @@ def send_local_servo_trigger(event: str, data: dict):
 
 # ─── Konfigurasi Global ───────────────────────────────────────────────────────
 
-LAPTOP_IP = "10.190.143.76"  # Default fallback untuk IP GCS Laptop
+LAPTOP_IP = "10.70.6.76"  # Default fallback untuk IP GCS Laptop
 GCS_URL         = f"http://{LAPTOP_IP}:5000"
 # [FIX E] Diturunkan dari 8.0 -> 3.0. wifi_watchdog.service (OS-level) sudah
 # menangani reconnect WiFi sendiri; loop ini cukup jadi trigger cepat untuk

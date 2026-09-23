@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup_wifi_reconnect.sh - Menyetel auto-reconnect, custom SSID/Password, dan watchdog Wi-Fi di Raspberry Pi.
-# Memantau SSID "discrete" dan "wakanda_31" setiap 3 detik.
+# Khusus memantau SSID "discrete" dengan password "wakanda_31".
 # Penggunaan:
 #   sudo bash setup_wifi_reconnect.sh
 
@@ -11,26 +11,19 @@ fi
 
 echo "============================================="
 echo "[*] Memulai Konfigurasi Stabilitas Wi-Fi..."
-echo "    Mendukung SSID: 'discrete' & 'wakanda_31'"
+echo "    Mendukung SSID Target: 'discrete'"
 echo "============================================="
 
 # 1. Pendaftaran SSID dan Password target ke NetworkManager
 if systemctl is-active NetworkManager >/dev/null 2>&1; then
-    echo "[*] Mendaftarkan profil Wi-Fi ke NetworkManager..."
+    echo "[*] Mendaftarkan profil Wi-Fi 'discrete' ke NetworkManager..."
     
     # Setup profil 'discrete'
     nmcli connection delete "discrete" >/dev/null 2>&1
     nmcli connection add type wifi con-name "discrete" ifname wlan0 ssid "discrete" >/dev/null 2>&1
     nmcli connection modify "discrete" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "wakanda_31" >/dev/null 2>&1
     nmcli connection modify "discrete" connection.autoconnect yes connection.autoconnect-priority 100 connection.autoconnect-retries 0
-    echo "[✓] Profil 'discrete' didaftarkan (Prioritas: TINGGI)."
-
-    # Setup profil 'wakanda_31'
-    nmcli connection delete "wakanda_31" >/dev/null 2>&1
-    nmcli connection add type wifi con-name "wakanda_31" ifname wlan0 ssid "wakanda_31" >/dev/null 2>&1
-    nmcli connection modify "wakanda_31" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "wakanda_31" >/dev/null 2>&1
-    nmcli connection modify "wakanda_31" connection.autoconnect yes connection.autoconnect-priority 90 connection.autoconnect-retries 0
-    echo "[✓] Profil 'wakanda_31' didaftarkan (Prioritas: SEDANG)."
+    echo "[✓] Profil 'discrete' didaftarkan."
 
     # Matikan power save secara permanen di NetworkManager
     if [ -d "/etc/NetworkManager/conf.d" ]; then
@@ -49,12 +42,6 @@ network={
     ssid="discrete"
     psk="wakanda_31"
     priority=100
-}
-
-network={
-    ssid="wakanda_31"
-    psk="wakanda_31"
-    priority=90
 }
 EOF
     echo "[✓] Profil ditambahkan ke wpa_supplicant.conf."
@@ -80,7 +67,7 @@ iwconfig wlan0 power off 2>/dev/null
 
 FAIL_COUNT=0
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Memulai pemantauan Wi-Fi stabil..." >> "$LOG_FILE"
+echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Memulai pemantauan Wi-Fi stabil (SSID: discrete)..." >> "$LOG_FILE"
 
 while true; do
     # Selalu pastikan Wi-Fi power save tetap off
@@ -104,25 +91,25 @@ while true; do
 
         # Hanya lakukan reconnect jika terputus berturut-turut 5x (~50 detik total)
         if [ "$FAIL_COUNT" -ge 5 ]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Koneksi benar-benar terputus 5x berturut-turut. Mencoba reconnect..." >> "$LOG_FILE"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Koneksi benar-benar terputus 5x berturut-turut. Mencoba reconnect ke 'discrete'..." >> "$LOG_FILE"
 
-            # Coba hubungkan ulang ke profil yang tersimpan tanpa mematikan radio Wi-Fi secara mendadak
-            nmcli connection up "discrete" >/dev/null 2>&1 || nmcli connection up "wakanda_31" >/dev/null 2>&1
+            # Hubungkan ulang ke 'discrete'
+            nmcli connection up "discrete" >/dev/null 2>&1
 
             sleep 5
             NEW_GW=$(ip route | grep default | awk '{print $3}' | head -n 1)
             if [ -n "$NEW_GW" ] && ping -c 1 -W 2 "$NEW_GW" > /dev/null 2>&1; then
-                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Berhasil terhubung kembali." >> "$LOG_FILE"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Berhasil terhubung kembali ke 'discrete'." >> "$LOG_FILE"
                 FAIL_COUNT=0
             else
-                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Reconnect gagal. Mereload NetworkManager connection..." >> "$LOG_FILE"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Reconnect gagal. Mereload NetworkManager..." >> "$LOG_FILE"
                 nmcli connection reload >/dev/null 2>&1
                 FAIL_COUNT=0
             fi
         fi
     fi
 
-    # Cek setiap 10 detik agar tidak membebani antarmuka Wi-Fi atau memicu channel scan
+    # Cek setiap 10 detik agar tidak membebani antarmuka Wi-Fi
     sleep 10
 done
 EOF
@@ -134,7 +121,7 @@ echo "[✓] Script watchdog selesai dibuat."
 echo "[*] Membuat systemd service untuk watchdog..."
 cat << 'EOF' > /etc/systemd/system/wifi_watchdog.service
 [Unit]
-Description=Wi-Fi Auto-Reconnect Watchdog
+Description=Wi-Fi Auto-Reconnect Watchdog (discrete)
 After=network.target
 
 [Service]
@@ -159,6 +146,5 @@ systemctl restart wifi_watchdog.service
 
 echo "============================================="
 echo "[✓] SETUP SELESAI!"
-echo "Watchdog berjalan sebagai systemd service."
-echo "Log dapat dilihat di: /var/log/wifi_watchdog.log atau journalctl -u wifi_watchdog"
+echo "Watchdog hanya dikhususkan untuk SSID 'discrete'."
 echo "============================================="

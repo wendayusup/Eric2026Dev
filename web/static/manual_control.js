@@ -4,10 +4,10 @@
 
 function sendManualAction(action) {
     console.log("[FCS GCS] sendManualAction called with action:", action);
+    const isTelemConnected = (Date.now() - lastTelemetryTime) < 5000;
+    const hasGpsFix = isTelemConnected && globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0 && globalTelemetry.lng && globalTelemetry.lng !== 0;
+
     if (action === 'disarm') {
-        if (!confirm("⚠️ EMERGENCY CUT (KILL SWITCH)\n\nAre you sure you want to FORCE DISARM the drone? This will instantly shut off all motors!")) {
-            return;
-        }
         updateMapStatus("EMERGENCY CUT (DISARM)", "#ff453a", true);
         if (typeof showToastAlert === 'function') {
             showToastAlert('EMERGENCY CUT', 'Force disarm / kill switch triggered!', 'error', 4000);
@@ -20,6 +20,9 @@ function sendManualAction(action) {
         updateMapStatus("ARMING SENT", "#ff9500", true);
         if (typeof addSystemLog === 'function') addSystemLog('Command sent: ARM vehicle.', 'warning');
     } else if (action === 'land') {
+        if (!hasGpsFix) {
+            return showCustomAlert("GPS Lock Required", "GPS lock is missing! LAND command requires active GPS lock.", "error");
+        }
         updateMapStatus("LANDING SENT", "#0071e3", true);
         if (typeof showToastAlert === 'function') showToastAlert('ACTION', 'Commanding LANDING mode...', 'info', 2500);
         if (typeof addSystemLog === 'function') addSystemLog('Command sent: LAND mode initiated.', 'info');
@@ -30,6 +33,12 @@ function sendManualAction(action) {
 }
 
 function sendTakeoffAction() {
+    const isTelemConnected = (Date.now() - lastTelemetryTime) < 5000;
+    const hasGpsFix = isTelemConnected && globalTelemetry && globalTelemetry.lat && globalTelemetry.lat !== 0 && globalTelemetry.lng && globalTelemetry.lng !== 0;
+    if (!hasGpsFix) {
+        return showCustomAlert("GPS Lock Required", "GPS lock is missing! TAKEOFF command requires active GPS lock.", "error");
+    }
+
     const altInput = document.getElementById('manual-alt');
     const altVal = altInput ? (parseFloat(altInput.value) || 1.0) : 1.0;
     console.log("[FCS GCS] Manual Takeoff target alt:", altVal);

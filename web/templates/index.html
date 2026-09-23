@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Drone GCS</title>
+    <title>SAVIO K21 GCS</title>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap"
@@ -105,7 +105,8 @@
                     </select>
 
                     <!-- Camera Stream Resolution Dropdown -->
-                    <select id="select-cam-res" class="cam-res-select" onchange="changeCameraResolution(this.value)" title="Camera Stream Resolution"
+                    <select id="select-cam-res" class="cam-res-select" onchange="changeCameraResolution(this.value)"
+                        title="Camera Stream Resolution"
                         style="padding: 2px 24px 2px 8px; width: 165px; font-size: 11px; height: 26px; border-radius: 6px; background: #ffffff; border: 1px solid var(--border-soft); font-weight: 700; cursor: pointer; color: #0f172a;">
                         <option value="hd">CAM: HD (640x360)</option>
                         <option value="high">CAM: HIGH (480x270)</option>
@@ -141,12 +142,6 @@
             <div class="panel-header"
                 style="display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
                 <span>COMMAND CENTER</span>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <button onclick="toggleLogPanel()" id="btn-log-toggle"
-                        style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); color: #0ea5e9; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s ease;">
-                        LOG
-                    </button>
-                </div>
             </div>
 
             <!-- SWITCHABLE MODE CONTENT (Manual or Mission) -->
@@ -165,12 +160,14 @@
                 <div
                     style="display: flex; flex-direction: column; gap: 5px; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-orange);">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span style="color: #0f172a; font-weight: 700; font-size: 10.5px; letter-spacing: 0.5px;">TELEM STATUS:</span>
+                        <span style="color: #0f172a; font-weight: 700; font-size: 10.5px; letter-spacing: 0.5px;">TELEM
+                            STATUS:</span>
                         <span id="map-status-telem"
                             style="color: #ef4444; font-weight: 800; font-size: 11px; font-family: 'JetBrains Mono', monospace;">DISCONNECTED</span>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span style="color: #0f172a; font-weight: 700; font-size: 10.5px; letter-spacing: 0.5px;">DEVICE STATUS:</span>
+                        <span style="color: #0f172a; font-weight: 700; font-size: 10.5px; letter-spacing: 0.5px;">DEVICE
+                            STATUS:</span>
                         <span id="map-status-raspi"
                             style="color: #ef4444; font-weight: 800; font-size: 11px; font-family: 'JetBrains Mono', monospace;">DISCONNECTED</span>
                     </div>
@@ -181,8 +178,8 @@
             <div
                 style="padding: 10px 12px; border-top: 1px solid var(--border-soft); background: #f8fafc; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span
-                        style="font-size: 11px; font-weight: 700; color: #0f172a; letter-spacing: 0.5px;">SYSTEM EVENT LOG:</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #0f172a; letter-spacing: 0.5px;">SYSTEM EVENT
+                        LOG:</span>
                     <button onclick="clearSystemLog()"
                         style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); color: #0ea5e9; font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; cursor: pointer;">CLEAR</button>
                 </div>

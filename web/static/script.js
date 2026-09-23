@@ -848,9 +848,7 @@ socket.on('telemetry_data', (data) => {
     if (data.connected) {
         lastTelemetryTime = Date.now();
         isConnectedState = true;
-        const rssiText = (data.rssi_dbm !== undefined && data.rssi_dbm !== null)
-            ? `CONNECTED (${data.rssi_dbm} dBm)` : "CONNECTED";
-        updateMapStatus(rssiText, "#34c759", false);
+        updateMapStatus("CONNECTED", "#34c759", false);
     } else {
         isConnectedState = false;
         updateMapStatus("DISCONNECTED", "#ff453a", false);
@@ -982,7 +980,7 @@ socket.on('camera_status', (data) => {
 
     if (badge) {
         if (data.connected) {
-            if (data.rssi >= -60) {
+            if (data.rssi >= -60 || !data.rssi) {
                 badge.innerText = `● LIVE (GOOD)`;
                 badge.className = "rssi-pill rssi-good";
             } else if (data.rssi < -60 && data.rssi >= -78) {

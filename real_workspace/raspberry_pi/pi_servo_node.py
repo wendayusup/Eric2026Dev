@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pi_servo_node.py — KRTI 2026 VTOL | Single Servo Node (OPEN/CLOSE on Pin 12)
+pi_servo_node.py — ERIC 2026 VTOL | Single Servo Node (OPEN/CLOSE on Pin 12)
 
 Mode Servo Tunggal (Single Servo):
   - Servo terhubung ke GPIO 12 (Physical Pin 32, PWM0).
@@ -21,7 +21,7 @@ import threading
 
 # ─── Configuration ─────────────────────────────────────────────────────────
 
-LAPTOP_IP = "10.157.67.76"  # Default fallback IP GCS Laptop
+LAPTOP_IP = "10.190.143.76"  # Default fallback IP GCS Laptop
 GCS_URL = f"http://{LAPTOP_IP}:5000"
 
 SERVO1_PIN = 12  # GPIO12 (PWM0, Physical Pin 32)

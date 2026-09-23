@@ -1,5 +1,5 @@
 [Unit]
-Description=KRTI 2026 Drone Nodes Startup Service
+Description=ERIC 2026 Drone Nodes Startup Service
 After=multi-user.target
 
 [Service]

@@ -65,80 +65,65 @@ iw dev wlan0 set power_save off 2>/dev/null
 iwconfig wlan0 power off 2>/dev/null
 echo "[✓] Power Saving pada wlan0 dinonaktifkan."
 
-# 2. Membuat script watchdog loop 3 detik di /usr/local/bin/wifi_watchdog.sh
+# 2. Membuat script watchdog berkala di /usr/local/bin/wifi_watchdog.sh
 echo "[*] Membuat script watchdog (/usr/local/bin/wifi_watchdog.sh)..."
 cat << 'EOF' > /usr/local/bin/wifi_watchdog.sh
 #!/bin/bash
-# wifi_watchdog.sh - Memantau koneksi Wi-Fi dan memastikan terhubung ke 'discrete' atau 'wakanda_31' setiap 3 detik.
+# wifi_watchdog.sh - Memantau koneksi Wi-Fi secara aman tanpa memutus SSH aktif.
 
 LOG_FILE="/var/log/wifi_watchdog.log"
 touch "$LOG_FILE"
 
-# Matikan power save Wi-Fi secara berkala
+# Matikan power save Wi-Fi secara permanen
 iw dev wlan0 set power_save off 2>/dev/null
 iwconfig wlan0 power off 2>/dev/null
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Memulai pemantauan Wi-Fi..." >> "$LOG_FILE"
+FAIL_COUNT=0
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Memulai pemantauan Wi-Fi stabil..." >> "$LOG_FILE"
 
 while true; do
-    # Cek SSID aktif saat ini
-    ACTIVE_SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2 | head -n 1)
+    # Selalu pastikan Wi-Fi power save tetap off
+    iw dev wlan0 set power_save off 2>/dev/null
+
     GATEWAY=$(ip route | grep default | awk '{print $3}' | head -n 1)
     
-    IS_CONNECTED=false
-    if [ "$ACTIVE_SSID" = "discrete" ] || [ "$ACTIVE_SSID" = "wakanda_31" ]; then
-        if [ -n "$GATEWAY" ]; then
-            # Ping cepat ke gateway
-            ping -c 1 -W 1 "$GATEWAY" > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                IS_CONNECTED=true
-            fi
+    CONNECTED=false
+    if [ -n "$GATEWAY" ]; then
+        # Ping gateway dengan 2 paket (timeout 2 detik)
+        if ping -c 2 -W 2 "$GATEWAY" > /dev/null 2>&1; then
+            CONNECTED=true
         fi
     fi
-    
-    if [ "$IS_CONNECTED" = "false" ]; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Koneksi terputus! (SSID aktif: '$ACTIVE_SSID'). Mencoba menyambungkan kembali..." >> "$LOG_FILE"
-        
-        # Scan AP sekitar
-        nmcli device wifi rescan >/dev/null 2>&1
-        sleep 2
-        
-        # Ambil daftar SSID terdekat
-        SSIDS_AVAILABLE=$(nmcli -t -f ssid dev wifi list | grep -E "^(discrete|wakanda_31)$")
-        
-        CONNECTED=false
-        
-        # Coba hubungkan ke discrete jika ada
-        if echo "$SSIDS_AVAILABLE" | grep -q "discrete"; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Menemukan SSID 'discrete'. Menghubungkan..." >> "$LOG_FILE"
-            nmcli connection up "discrete" >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Berhasil menyambungkan ulang ke 'discrete'." >> "$LOG_FILE"
-                CONNECTED=true
-            fi
-        fi
-        
-        # Coba hubungkan ke wakanda_31 jika discrete tidak ada atau gagal
-        if [ "$CONNECTED" = "false" ] && echo "$SSIDS_AVAILABLE" | grep -q "wakanda_31"; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Menemukan SSID 'wakanda_31'. Menghubungkan..." >> "$LOG_FILE"
-            nmcli connection up "wakanda_31" >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Berhasil menyambungkan ulang ke 'wakanda_31'." >> "$LOG_FILE"
-                CONNECTED=true
-            fi
-        fi
-        
-        # Jika keduanya gagal/tidak ada, reset modul wifi
-        if [ "$CONNECTED" = "false" ]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Tidak ada target SSID yang tersedia atau gagal terhubung. Mereset interface..." >> "$LOG_FILE"
-            nmcli radio wifi off
-            sleep 2
-            nmcli radio wifi on
+
+    if [ "$CONNECTED" = "true" ]; then
+        FAIL_COUNT=0
+    else
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Peringatan: Ping gateway terputus ($FAIL_COUNT/5)..." >> "$LOG_FILE"
+
+        # Hanya lakukan reconnect jika terputus berturut-turut 5x (~50 detik total)
+        if [ "$FAIL_COUNT" -ge 5 ]; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Koneksi benar-benar terputus 5x berturut-turut. Mencoba reconnect..." >> "$LOG_FILE"
+
+            # Coba hubungkan ulang ke profil yang tersimpan tanpa mematikan radio Wi-Fi secara mendadak
+            nmcli connection up "discrete" >/dev/null 2>&1 || nmcli connection up "wakanda_31" >/dev/null 2>&1
+
             sleep 5
+            NEW_GW=$(ip route | grep default | awk '{print $3}' | head -n 1)
+            if [ -n "$NEW_GW" ] && ping -c 1 -W 2 "$NEW_GW" > /dev/null 2>&1; then
+                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Berhasil terhubung kembali." >> "$LOG_FILE"
+                FAIL_COUNT=0
+            else
+                echo "$(date '+%Y-%m-%d %H:%M:%S') [Watchdog] Reconnect gagal. Mereload NetworkManager connection..." >> "$LOG_FILE"
+                nmcli connection reload >/dev/null 2>&1
+                FAIL_COUNT=0
+            fi
         fi
     fi
-    
-    sleep 3
+
+    # Cek setiap 10 detik agar tidak membebani antarmuka Wi-Fi atau memicu channel scan
+    sleep 10
 done
 EOF
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# start_nodes.sh — Startup script untuk semua node KRTI 2026 di Raspberry Pi
+# start_nodes.sh — Startup script untuk semua node ERIC 2026 di Raspberry Pi
 # Jalankan via systemd (krti_nodes.service) atau manual: bash start_nodes.sh
 
 LOG_DIR="/home/polman"
@@ -22,7 +22,7 @@ $SUDO pigpiod
 
 sleep 1
 
-# Node-node KRTI 2026 berjalan 100% independen (tanpa butuh Wi-Fi)
+# Node-node ERIC 2026 berjalan 100% independen (tanpa butuh Wi-Fi)
 # Jika Wi-Fi ada, Socket.IO akan otomatis terhubung ke Web GCS di background.
 
 # Jalankan node node secara stabil dan dipisah, bukan memaksa semua proses berhenti jika satu gagal
@@ -41,7 +41,7 @@ python3 -u "$LOG_DIR/pi_cam_node.py" > "$LOG_DIR/pi_cam.log" 2>&1 &
 echo "[*] Menjalankan Node Servo (Socket.IO)..."
 python3 -u "$LOG_DIR/pi_servo_node.py" > "$LOG_DIR/pi_servo.log" 2>&1 &
 
-echo "[✓] Semua node KRTI 2026 berhasil dijalankan di background!"
+echo "[✓] Semua node ERIC 2026 berhasil dijalankan di background!"
 echo "    Log kamera : $LOG_DIR/pi_cam.log"
 echo "    Log servo  : $LOG_DIR/pi_servo.log"
 echo "    Log LED    : $LOG_DIR/pi_led.log"

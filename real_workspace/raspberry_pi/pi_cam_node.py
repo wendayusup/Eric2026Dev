@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-pi_cam_node.py — KRTI 2026 VTOL | Raspberry Pi Camera Node
+pi_cam_node.py — ERIC 2026 VTOL | Raspberry Pi Camera Node
 Perubahan dari versi sebelumnya:
   1. Grayscale conversion sebelum deteksi ArUco (akurasi & speed)
-  2. Dictionary dipersempit ke DICT_7X7_50 saja (sesuai marker KRTI 2026)
+  2. Dictionary dipersempit ke DICT_7X7_50 saja (sesuai marker ERIC 2026)
   3. ArUcoFilter per-ID (tidak campur antar waypoint)
   4. marker_id ikut dikirim dalam event aruco_target_stable
   5. Prioritas marker: ID terkecil aktif (WP1 > WP2 > dst), bukan terdekat center
@@ -52,7 +52,7 @@ def send_local_servo_trigger(event: str, data: dict):
 
 # ─── Konfigurasi Global ───────────────────────────────────────────────────────
 
-LAPTOP_IP = "10.157.67.76"  # Default fallback untuk IP GCS Laptop
+LAPTOP_IP = "10.190.143.76"  # Default fallback untuk IP GCS Laptop
 GCS_URL         = f"http://{LAPTOP_IP}:5000"
 # [FIX E] Diturunkan dari 8.0 -> 3.0. wifi_watchdog.service (OS-level) sudah
 # menangani reconnect WiFi sendiri; loop ini cukup jadi trigger cepat untuk

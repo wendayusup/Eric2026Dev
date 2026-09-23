@@ -76,6 +76,7 @@ if [ -z "$RASPI_IP" ]; then
     exit 1
 fi
 
+echo "$RASPI_IP" > /tmp/last_pi_ip.txt 2>/dev/null
 echo "[+] Found! Raspberry Pi IP active & SSH Ready: $RASPI_IP"
 echo "[*] Connecting to SSH polman@$RASPI_IP..."
 ssh -t \

@@ -590,8 +590,8 @@ class ROS2GCSBridgeNode(Node):
         filt_p = self.filt_pitch.filter(pitch_deg)
         filt_y = self.filt_yaw.filter(yaw_deg)
 
-        current_telemetry['roll'] = round(filt_r, 2)
-        current_telemetry['pitch'] = round(filt_p, 2)
+        current_telemetry['roll'] = round(-filt_r, 2)
+        current_telemetry['pitch'] = round(-filt_p, 2)
         current_telemetry['yaw'] = round(filt_y, 2)
         current_telemetry['connected'] = True
         self.last_any_data_time = time.time()
